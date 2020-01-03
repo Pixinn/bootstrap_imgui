@@ -1,0 +1,14 @@
+[requires]
+sdl2/2.0.10@bincrafters/stable
+glew/2.1.0@bincrafters/stable
+glm/0.9.8.5@bincrafters/stable
+imgui/1.73@bincrafters/stable
+
+[generators]
+cmake
+
+[imports]
+./misc/bindings, imgui_impl_sdl.h -> ../imgui
+./misc/bindings, imgui_impl_sdl.cpp -> ../imgui
+./misc/bindings, imgui_impl_opengl3.h -> ../imgui
+./misc/bindings, imgui_impl_opengl3.cpp -> ../imgui
