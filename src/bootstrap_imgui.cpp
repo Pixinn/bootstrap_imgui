@@ -64,14 +64,20 @@ namespace bootstrap {
 
 namespace test {
 
-  // Required element to draw the test square
-  struct Square_t {
+  // Required element to draw the OpenGL test rectangle
+  struct Rectangle_t {
     unsigned hProgrammShader;
     unsigned hVao;
     unsigned nbVertices;
   };
+  // Sets the OpenGl rectangle
+  Rectangle_t SetUpRectangle();
 
-  Square_t SetUpRectangle();
+  // Sets Dear Imgui test window
+  void Imgui_TestWindow();
+
+  // Inits the position and size of the test window
+  void Imgui_TestInit();
 
 }
 
@@ -113,6 +119,7 @@ int main(int argc, char *argv[])
   ImGui::StyleColorsDark();
   ImGui_ImplSDL2_InitForOpenGL(window, context_ogl);
   ImGui_ImplOpenGL3_Init(GLSL_VERSION);
+  test::Imgui_TestInit();
 
   // # Test elements
   const auto square = test::SetUpRectangle();
@@ -147,10 +154,8 @@ int main(int argc, char *argv[])
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame(window);
     ImGui::NewFrame();
-    // ### window
-    ImGui::Begin("Hello, world!");
-    ImGui::Text("HELLO WORLD");
-    ImGui::End();
+    // ### test window
+    test::Imgui_TestWindow();
      
     // ## render
 
@@ -231,7 +236,7 @@ namespace test
     "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
     "}\n\0";
 
-  Square_t SetUpRectangle()
+  Rectangle_t SetUpRectangle()
   {
     // build and compile our shader program
     // ------------------------------------
@@ -315,5 +320,19 @@ namespace test
       vao,
       6
     };
+  }
+
+
+  void Imgui_TestInit()
+  {
+    ImGui::SetNextWindowPos({ 25, 25 });
+    ImGui::SetNextWindowSize({ SCREEN_WIDTH / 4, SCREEN_WIDTH / 6 });
+  }
+
+  void Imgui_TestWindow()
+  {
+    ImGui::Begin("Hello, world!");
+    ImGui::Text("HELLO WORLD");
+    ImGui::End();
   }
 }
