@@ -68,7 +68,7 @@ namespace test {
   struct Rectangle_t {
     unsigned hProgrammShader;
     unsigned hVao;
-    unsigned nbVertices;
+    unsigned nbIndices;
   };
   // Sets the OpenGl rectangle
   Rectangle_t SetUpRectangle();
@@ -169,7 +169,7 @@ int main(int argc, char *argv[])
     // ### ogl draw the square
     glUseProgram(square.hProgrammShader);
     glBindVertexArray(square.hVao); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-    glDrawElements(GL_TRIANGLES, square.nbVertices, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, square.nbIndices, GL_UNSIGNED_INT, 0);
     
     // # Display
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
