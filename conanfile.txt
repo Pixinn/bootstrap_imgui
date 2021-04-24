@@ -1,8 +1,8 @@
 [requires]
-sdl2/2.0.10@bincrafters/stable
-glew/2.1.0@bincrafters/stable
-glm/0.9.9.5@g-truc/stable
-imgui/1.73@bincrafters/stable
+sdl2/[>=2.0.14]@bincrafters/stable
+glew/[>=2.2.0]
+glm/[>=0.9.9]
+imgui/[>=1.82]
 
 [generators]
 cmake
