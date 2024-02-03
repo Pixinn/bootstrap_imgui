@@ -27,7 +27,7 @@
 // It will draw an orange squared as a test
 // HEAVY borrows from: https://learnopengl.com/Getting-started/Hello-Triangle
 
-
+#include <cassert>
 #include <iostream>
 
 // OpenGL
@@ -42,10 +42,12 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl2.h>
 
+#include "helpers/HelpersImgui.h"
 
 
-static constexpr int SCREEN_WIDTH = 800;
-static constexpr int SCREEN_HEIGHT = 600;
+
+static constexpr int SCREEN_WIDTH = 1600;
+static constexpr int SCREEN_HEIGHT = 1200;
 
 static constexpr int OPENGL_MAJOR_VERSION = 3;
 static constexpr int OPENGL_MINOR_VERSION = 3;
@@ -108,7 +110,8 @@ int main(int argc, char *argv[])
     std::cerr << "There was an error creating OpenGL context: " << SDL_GetError() << std::endl;
     return 1;
   }
- 
+
+
   // # OpenGL Init
   bootstrap::InitGL();
   bootstrap::SetViewport(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -122,7 +125,6 @@ int main(int argc, char *argv[])
   test::Imgui_TestInit();
 
   // # Test elements
-  const auto square = test::SetUpRectangle();
   const struct {
     float r = 0.2f;
     float g = 0.3f;
@@ -130,13 +132,16 @@ int main(int argc, char *argv[])
     float a = 1.0f;
   } color_background;
 
-
+  helpers::WindowRender windowScene{ "Scene" };
+  bool success = windowScene.init();
+  assert(success);
 
   // # Main loop
   SDL_Event event;
   bool quit = false;
   while(!quit)
   {
+
     // ## process events
     while (SDL_PollEvent(&event))
     {
@@ -149,29 +154,33 @@ int main(int argc, char *argv[])
       }
     }
 
-    // ## imgui
-    // ### new frame
+    // ## New frame
+    // ### imgui
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame(window);
     ImGui::NewFrame();
-    // ### test window
-    test::Imgui_TestWindow();
-     
-    // ## render
-
-    // ### imgui
-    ImGui::Render();
-
-    // ### ogl clear the buffers
+    // ## opengl main framebuffer
     glClearColor(color_background.r, color_background.g, color_background.b, color_background.a);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // ### ogl draw the square
+    // ## Scene
+    const auto square = test::SetUpRectangle();
+    // ### Sends the opengl commands into the helper window 
+    windowScene.bind();
     glUseProgram(square.hProgrammShader);
     glBindVertexArray(square.hVao); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
     glDrawElements(GL_TRIANGLES, square.nbIndices, GL_UNSIGNED_INT, 0);
-    
-    // # Display
+    windowScene.unbind();
+    // ### draw the helper window
+    windowScene.draw();
+
+    // ## Test imgui window
+    test::Imgui_TestWindow();
+
+    // ## imgui render
+    ImGui::Render();
+
+    // ## Display
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     SDL_GL_SwapWindow(window); // swap the buffers work and display buffers
   }
@@ -198,10 +207,9 @@ namespace bootstrap
       std::cout << "ERROR: Cannot init GLEW" << std::endl;
       exit(1);
     }
+
     // select flat or smooth shading
     glShadeModel(GL_SMOOTH);
-    // specify implementation-specific hints
-    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST); // The most correct, or highest quality, option should be chosen. 
   }
 
   // Function to reset our viewport after a window resize

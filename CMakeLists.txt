@@ -12,7 +12,7 @@ conan_basic_setup()
 find_package(OpenGL REQUIRED COMPONENTS OpenGL)
 
 #========== conan imgui =============#
-set(SRC_DIR_IMGUI imgui)
+set(SRC_DIR_IMGUI "external/imgui")
 set(SRC_IMGUIBIND ${SRC_DIR_IMGUI}/imgui_impl_opengl3.cpp ${SRC_DIR_IMGUI}/imgui_impl_sdl2.cpp)
 add_library(imguibind ${SRC_IMGUIBIND})
 
@@ -25,10 +25,14 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 #========== Targets Configurations ============#
 # project sources
-add_executable(${PROJECT_NAME}  src/bootstrap_imgui.cpp)
+add_executable(${PROJECT_NAME}
+    src/bootstrap_imgui.cpp
+    src/helpers/HelpersImgui.h
+    src/helpers/HelpersImgui.cpp
+)
                          
 # set executable dependecies
-target_include_directories(${PROJECT_NAME} PRIVATE src imgui)
+target_include_directories(${PROJECT_NAME} PRIVATE src ${SRC_DIR_IMGUI})
 target_link_libraries(${PROJECT_NAME} imguibind)
 conan_set_find_library_paths(${PROJECT_NAME})
 conan_target_link_libraries(${PROJECT_NAME})
