@@ -32,7 +32,7 @@ namespace helpers
     }
 
 
-    void WindowRender::bind()
+    void WindowRender::begin()
     {
 
       // Get current window's size
@@ -72,7 +72,7 @@ namespace helpers
     }
 
 
-    void WindowRender::unbind()
+    void WindowRender::end()
     {
       glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }

@@ -166,11 +166,11 @@ int main(int argc, char *argv[])
     // ## Scene
     const auto square = test::SetUpRectangle();
     // ### Sends the opengl commands into the helper window 
-    windowScene.bind();
+    windowScene.begin();
     glUseProgram(square.hProgrammShader);
     glBindVertexArray(square.hVao); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
     glDrawElements(GL_TRIANGLES, square.nbIndices, GL_UNSIGNED_INT, 0);
-    windowScene.unbind();
+    windowScene.end();
     // ### draw the helper window
     windowScene.draw();
 

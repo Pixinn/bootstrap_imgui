@@ -12,19 +12,19 @@ namespace helpers
     {
     public:
 
-      WindowRender(const std::string& title)
-        : _title(title)
+      WindowRender(const std::string& windowTitle)
+        : _title(windowTitle)
       {}
 
       ~WindowRender();
 
       bool init();
 
-      /// @brief Takes the next OpenGl rendering command
-      void bind();
+      /// @brief The window will "capture" the following OpenGl rendering command until the call of end()
+      void begin();
       
-      /// @brief Releases the rendering command handler
-      void unbind();
+      /// @brief Stops "capturing" the OpenGl commands
+      void end();
       
       /// @brief Draws the window
       void draw();
