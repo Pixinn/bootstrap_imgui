@@ -1,14 +1,30 @@
 #include <iostream>
 
+#include <imgui_impl_opengl3.h>
+#include <imgui_impl_sdl2.h>
+
 #include "HelpersImgui.h"
 
 namespace helpers
 {
 
+  namespace imgui
+  {
+
+    void Init(const std::pair<SDL_GLContext, SDL_Window*>& context, const char* const glsl_version)
+    {
+      // # Imgui Init
+      IMGUI_CHECKVERSION();
+      ImGui::CreateContext();
+      ImGui::StyleColorsDark();
+      ImGui_ImplSDL2_InitForOpenGL(context.second, context.first);
+      ImGui_ImplOpenGL3_Init(glsl_version);
+    }
+   
 
     WindowRender::~WindowRender()
     {
-      if(_initialized)
+      if (_initialized)
       {
         glDeleteFramebuffers(1, &_frameBufferObject);
         glDeleteRenderbuffers(1, &_renderBufferObject);
@@ -19,7 +35,7 @@ namespace helpers
 
     bool WindowRender::init()
     {
-      if(!_initialized)
+      if (!_initialized)
       {
         _initialized = true;
 
@@ -39,15 +55,15 @@ namespace helpers
       //ImGui::SetNextWindowSize({ 128.f, 128.f }, ImGuiCond_FirstUseEver);
       ImGui::Begin(_title.c_str());
       _size = ImGui::GetContentRegionAvail();
-      ImGui::End();      
-      
+      ImGui::End();
+
       // A minimal size is required for OpenGl 
-      const float x = std::max({1.f, _size.x});
-      const float y = std::max({1.f, _size.y });
-     
+      const float x = std::max({ 1.f, _size.x });
+      const float y = std::max({ 1.f, _size.y });
+
       glBindFramebuffer(GL_FRAMEBUFFER, _frameBufferObject); // now all ogl commands are from/to this framebuffer
       glViewport(0, 0, int(x + 0.5f), int(y + 0.5f));
-     
+
       glGenTextures(1, &_texture);
       glBindTexture(GL_TEXTURE_2D, _texture); // all the following commands are related to this _texture
       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, int(x + 0.5f), int(y + 0.5f), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL); //color _texture 
@@ -55,18 +71,18 @@ namespace helpers
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
       glBindTexture(GL_TEXTURE_2D, 0); // unbind the _texture
       glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _texture, 0); // attach the _texture to the binded framebuffer
-      
+
       glBindRenderbuffer(GL_RENDERBUFFER, _frameBufferObject);
       glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, int(x + 0.5f), int(y + 0.5f));
-      glBindRenderbuffer(GL_RENDERBUFFER, 0);      
+      glBindRenderbuffer(GL_RENDERBUFFER, 0);
       glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, _frameBufferObject); // Render buffer object attached to the framebuffer
-      
+
       auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
       if (status != GL_FRAMEBUFFER_COMPLETE) // Sanity
       {
         std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
       }
-      
+
       glClearColor(0.f, 0.f, 0.f, 1.f);
       glClear(GL_COLOR_BUFFER_BIT);
     }
@@ -83,5 +99,7 @@ namespace helpers
       ImGui::Image((void*)(intptr_t)_texture, _size);
       ImGui::End();
     }
+    
 
+  }
 }

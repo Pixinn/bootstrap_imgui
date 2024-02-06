@@ -43,6 +43,7 @@
 #include <imgui_impl_sdl2.h>
 
 #include "helpers/HelpersImgui.h"
+#include "helpers/HelpersOpenGl.h"
 
 
 
@@ -87,43 +88,19 @@ namespace test {
 
 int main(int argc, char *argv[])
 {
-
-  // # SDL Init
-  if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-    std::cerr << "There was an error initing SDL2: " << SDL_GetError() << std::endl;
-    return 1;
+  // # OpenGl init
+  const auto oglInit = helpers::opengl::Init(SCREEN_WIDTH, SCREEN_HEIGHT);
+  if (!oglInit.has_value())
+  {
+    std::cerr << "Cannot init SDL and OpenGl" << std::endl;
+    return -1;
   }
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, OPENGL_PROFILE);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, OPENGL_MAJOR_VERSION);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, OPENGL_MINOR_VERSION);
+  // # DearImgui init
+  helpers::imgui::Init(oglInit.value(), GLSL_VERSION);
 
-  // # SDL Window creation
-  auto window = SDL_CreateWindow("Bootstrap DearImgui SDL2 OpenGL33", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL);
-  if (window == nullptr) {
-    std::cerr << "There was an error creating the window: " << SDL_GetError() << std::endl;
-    return 1;
-  }
-
-  // # OpenGL global context
-  auto context_ogl = SDL_GL_CreateContext(window);
-  if (context_ogl == nullptr) {
-    std::cerr << "There was an error creating OpenGL context: " << SDL_GetError() << std::endl;
-    return 1;
-  }
-
-
-  // # OpenGL Init
-  bootstrap::InitGL();
-  bootstrap::SetViewport(SCREEN_WIDTH, SCREEN_HEIGHT);
-
-  // # Imgui Init
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
-  ImGui::StyleColorsDark();
-  ImGui_ImplSDL2_InitForOpenGL(window, context_ogl);
-  ImGui_ImplOpenGL3_Init(GLSL_VERSION);
-  test::Imgui_TestInit();
-
+  const SDL_GLContext& openGlContext = oglInit.value().first;
+  SDL_Window* const mainWindow = oglInit.value().second;
+  
   // # Test elements
   const struct {
     float r = 0.2f;
@@ -132,8 +109,8 @@ int main(int argc, char *argv[])
     float a = 1.0f;
   } color_background;
 
-  helpers::WindowRender windowScene{ "Scene" };
-  bool success = windowScene.init();
+  helpers::imgui::WindowRender sceneWindow{ "Scene" };
+  bool success = sceneWindow.init();
   assert(success);
 
   // # Main loop
@@ -149,7 +126,7 @@ int main(int argc, char *argv[])
       if (event.type == SDL_QUIT) {
         quit = true;
       }
-      if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window)) {
+      if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(mainWindow)) {
         quit = true;
       }
     }
@@ -157,7 +134,7 @@ int main(int argc, char *argv[])
     // ## New frame
     // ### imgui
     ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplSDL2_NewFrame(window);
+    ImGui_ImplSDL2_NewFrame(mainWindow);
     ImGui::NewFrame();
     // ## opengl main framebuffer
     glClearColor(color_background.r, color_background.g, color_background.b, color_background.a);
@@ -166,13 +143,13 @@ int main(int argc, char *argv[])
     // ## Scene
     const auto square = test::SetUpRectangle();
     // ### Sends the opengl commands into the helper window 
-    windowScene.begin();
+    sceneWindow.begin();
     glUseProgram(square.hProgrammShader);
     glBindVertexArray(square.hVao); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
     glDrawElements(GL_TRIANGLES, square.nbIndices, GL_UNSIGNED_INT, 0);
-    windowScene.end();
+    sceneWindow.end();
     // ### draw the helper window
-    windowScene.draw();
+    sceneWindow.draw();
 
     // ## Test imgui window
     test::Imgui_TestWindow();
@@ -182,12 +159,12 @@ int main(int argc, char *argv[])
 
     // ## Display
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    SDL_GL_SwapWindow(window); // swap the buffers work and display buffers
+    SDL_GL_SwapWindow(mainWindow); // swap the buffers work and display buffers
   }
   
 
-  SDL_GL_DeleteContext(context_ogl);
-  SDL_DestroyWindow(window);
+  SDL_GL_DeleteContext(openGlContext);
+  SDL_DestroyWindow(mainWindow);
   SDL_Quit();
 
   return 0;

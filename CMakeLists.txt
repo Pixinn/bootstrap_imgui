@@ -24,15 +24,21 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 
 #========== Targets Configurations ============#
+# helpers library
+add_library(helpers  src/helpers/Common.h
+                     src/helpers/HelpersOpenGl.h
+                     src/helpers/HelpersOpenGl.cpp
+                     src/helpers/HelpersImgui.h
+                     src/helpers/HelpersImgui.cpp
+)
+target_include_directories(helpers PUBLIC src ${SRC_DIR_IMGUI})
+
 # project sources
 add_executable(${PROJECT_NAME}
-    src/bootstrap_imgui.cpp
-    src/helpers/HelpersImgui.h
-    src/helpers/HelpersImgui.cpp
+    src/main.cpp   
 )
                          
 # set executable dependecies
-target_include_directories(${PROJECT_NAME} PRIVATE src ${SRC_DIR_IMGUI})
-target_link_libraries(${PROJECT_NAME} imguibind)
+target_link_libraries(${PROJECT_NAME} helpers imguibind)
 conan_set_find_library_paths(${PROJECT_NAME})
 conan_target_link_libraries(${PROJECT_NAME})
