@@ -2,6 +2,7 @@
 
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl2.h>
+#include <GL/glew.h>
 
 #include "HelpersImgui.h"
 
@@ -11,15 +12,6 @@ namespace helpers
   namespace imgui
   {
 
-    void Init(const std::pair<SDL_GLContext, SDL_Window*>& context, const char* const glsl_version)
-    {
-      // # Imgui Init
-      IMGUI_CHECKVERSION();
-      ImGui::CreateContext();
-      ImGui::StyleColorsDark();
-      ImGui_ImplSDL2_InitForOpenGL(context.second, context.first);
-      ImGui_ImplOpenGL3_Init(glsl_version);
-    }
    
 
     WindowRender::~WindowRender()
@@ -64,7 +56,6 @@ namespace helpers
       glBindFramebuffer(GL_FRAMEBUFFER, _frameBufferObject); // now all ogl commands are from/to this framebuffer
       glViewport(0, 0, int(x + 0.5f), int(y + 0.5f));
 
-      glGenTextures(1, &_texture);
       glBindTexture(GL_TEXTURE_2D, _texture); // all the following commands are related to this _texture
       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, int(x + 0.5f), int(y + 0.5f), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL); //color _texture 
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

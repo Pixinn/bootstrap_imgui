@@ -1,7 +1,5 @@
 #pragma once
 
-#include <GL/glew.h>
-#include <GL/glew.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
 #include <SDL2/SDL_opengl_glext.h>
@@ -13,11 +11,8 @@ namespace helpers
 
   namespace imgui
   {
-
-    void Init(const std::pair<SDL_GLContext, SDL_Window*>& context, const char* const glsl_version);
-
     
-    // / @brief an Imgui Window diplaying a rendered scene
+    /// @brief an Imgui Window diplaying a rendered scene
     class WindowRender
     {
     public:

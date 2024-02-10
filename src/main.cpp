@@ -44,6 +44,7 @@
 
 #include "helpers/HelpersImgui.h"
 #include "helpers/HelpersOpenGl.h"
+#include "helpers/Renderer.h"
 
 
 
@@ -56,13 +57,6 @@ static constexpr int OPENGL_MINOR_VERSION = 3;
 static constexpr auto OPENGL_PROFILE = SDL_GLprofile::SDL_GL_CONTEXT_PROFILE_CORE;  // OpenGL core profile - deprecated functions are disabled
 static constexpr auto GLSL_VERSION = "#version 330 core";
 
-
-namespace bootstrap {
-
-  void InitGL();
-  int  SetViewport(int width, int height);
-
-}
 
 
 namespace test {
@@ -79,128 +73,98 @@ namespace test {
   // Sets Dear Imgui test window
   void Imgui_TestWindow();
 
-  // Inits the position and size of the test window
-  void Imgui_TestInit();
-
 }
 
 
-
-int main(int argc, char *argv[])
+static void RenderFrame(void)
 {
-  // # OpenGl init
-  const auto oglInit = helpers::opengl::Init(SCREEN_WIDTH, SCREEN_HEIGHT);
-  if (!oglInit.has_value())
-  {
-    std::cerr << "Cannot init SDL and OpenGl" << std::endl;
-    return -1;
-  }
-  // # DearImgui init
-  helpers::imgui::Init(oglInit.value(), GLSL_VERSION);
 
-  const SDL_GLContext& openGlContext = oglInit.value().first;
-  SDL_Window* const mainWindow = oglInit.value().second;
-  
+}
+
+class Main
+{
+
+public:
+
+  int run()
+  {
+    // # Init rendering environment
+    if (!_renderer.init(SCREEN_WIDTH, SCREEN_HEIGHT))
+    {
+      std::cerr << "Cannot init SDL and OpenGl" << std::endl;
+      return -1;
+    }
+    _renderer.setCallbacks(RenderFrame, this, ProcessEvents, this);
+
+    // # Init attributes
+    bool success = _sceneWindow.init();
+    assert(success);
+    _square = test::SetUpRectangle();
+
+    // # Enter main loop
+    _renderer.run();
+
+    return 0;
+  }
+
+
+private:
+
   // # Test elements
   const struct {
     float r = 0.2f;
     float g = 0.3f;
     float b = 0.3f;
     float a = 1.0f;
-  } color_background;
+  } _colorBackground;
 
-  helpers::imgui::WindowRender sceneWindow{ "Scene" };
-  bool success = sceneWindow.init();
-  assert(success);
+  helpers::imgui::WindowRender _sceneWindow{ "Scene" };
+  test::Rectangle_t _square;
 
-  // # Main loop
-  SDL_Event event;
-  bool quit = false;
-  while(!quit)
+  helpers::Renderer _renderer;
+
+private:
+
+  static void RenderFrame(void* const param)
   {
+    Main* const self = reinterpret_cast<Main*>(param);
 
-    // ## process events
-    while (SDL_PollEvent(&event))
-    {
-      ImGui_ImplSDL2_ProcessEvent(&event);
-      if (event.type == SDL_QUIT) {
-        quit = true;
-      }
-      if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(mainWindow)) {
-        quit = true;
-      }
-    }
-
-    // ## New frame
-    // ### imgui
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplSDL2_NewFrame(mainWindow);
-    ImGui::NewFrame();
     // ## opengl main framebuffer
-    glClearColor(color_background.r, color_background.g, color_background.b, color_background.a);
+    glClearColor(self->_colorBackground.r, self->_colorBackground.g, self->_colorBackground.b, self->_colorBackground.a);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // ## Scene
-    const auto square = test::SetUpRectangle();
-    // ### Sends the opengl commands into the helper window 
-    sceneWindow.begin();
-    glUseProgram(square.hProgrammShader);
-    glBindVertexArray(square.hVao); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-    glDrawElements(GL_TRIANGLES, square.nbIndices, GL_UNSIGNED_INT, 0);
-    sceneWindow.end();
+    //// ## Scene
+    //// ### Sends the opengl commands into the helper window 
+    self->_sceneWindow.begin();
+    glUseProgram(self->_square.hProgrammShader);
+    glBindVertexArray(self->_square.hVao); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+    glDrawElements(GL_TRIANGLES, self->_square.nbIndices, GL_UNSIGNED_INT, 0);
+    self->_sceneWindow.end();
     // ### draw the helper window
-    sceneWindow.draw();
+    self->_sceneWindow.draw();
 
-    // ## Test imgui window
+    //// ## Test imgui window
     test::Imgui_TestWindow();
-
-    // ## imgui render
-    ImGui::Render();
-
-    // ## Display
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    SDL_GL_SwapWindow(mainWindow); // swap the buffers work and display buffers
   }
-  
 
-  SDL_GL_DeleteContext(openGlContext);
-  SDL_DestroyWindow(mainWindow);
-  SDL_Quit();
+  static void ProcessEvents(void* const param, const SDL_Event events)
+  {
+    (void)(param);
+    (void)(events);
+  }
 
-  return 0;
-}
+};
 
 
 
-namespace bootstrap
+
+int main(int argc, char *argv[])
 {
-
-  // Inits OpenGL
-  // ShadeModel and Hints can be omitted / modified
-  void InitGL()
-  {
-    // init GLEW
-    if (glewInit() != GLEW_OK) {
-      std::cout << "ERROR: Cannot init GLEW" << std::endl;
-      exit(1);
-    }
-
-    // select flat or smooth shading
-    glShadeModel(GL_SMOOTH);
-  }
-
-  // Function to reset our viewport after a window resize
-  int SetViewport(const int width, const int height)
-  {
-    // setup the viewport
-    glViewport(0, 0, width, height);
-    // swap syncronized with the monitor's vertical refresh
-    SDL_GL_SetSwapInterval(1);
-
-    return 1;
-  }
-
+  Main runnable;
+  return runnable.run();
 }
+
+
 
 
 
@@ -307,12 +271,6 @@ namespace test
     };
   }
 
-
-  void Imgui_TestInit()
-  {
-    ImGui::SetNextWindowPos({ 25, 25 });
-    ImGui::SetNextWindowSize({ SCREEN_WIDTH / 4, SCREEN_WIDTH / 6 });
-  }
 
   void Imgui_TestWindow()
   {

@@ -25,7 +25,8 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 #========== Targets Configurations ============#
 # helpers library
-add_library(helpers  src/helpers/Common.h
+add_library(helpers  src/helpers/Renderer.h
+                     src/helpers/Renderer.cpp
                      src/helpers/HelpersOpenGl.h
                      src/helpers/HelpersOpenGl.cpp
                      src/helpers/HelpersImgui.h
