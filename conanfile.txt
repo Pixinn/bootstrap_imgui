@@ -7,8 +7,12 @@ imgui/[>=1.90]
 [generators]
 cmake
 
+[options]
+glew:shared=False
+
 [imports]
-./misc/bindings, imgui_impl_sdl.h -> ../imgui
-./misc/bindings, imgui_impl_sdl.cpp -> ../imgui
-./misc/bindings, imgui_impl_opengl3.h -> ../imgui
-./misc/bindings, imgui_impl_opengl3.cpp -> ../imgui
+./res/bindings, imgui_impl_sdl2.h -> ../external/imgui
+./res/bindings, imgui_impl_sdl2.cpp -> ../external/imgui
+./res/bindings, imgui_impl_opengl3.h -> ../external/imgui
+./res/bindings, imgui_impl_opengl3.cpp -> ../external/imgui
+./res/bindings, imgui_impl_opengl3_loader.h -> ../external/imgui

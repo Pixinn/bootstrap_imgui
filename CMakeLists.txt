@@ -11,16 +11,17 @@ conan_basic_setup()
 #========== non-conan dependencies =============#
 find_package(OpenGL REQUIRED COMPONENTS OpenGL)
 
-#========== conan imgui =============#
-set(SRC_DIR_IMGUI "external/imgui")
-set(SRC_IMGUIBIND ${SRC_DIR_IMGUI}/imgui_impl_opengl3.cpp ${SRC_DIR_IMGUI}/imgui_impl_sdl2.cpp)
-add_library(imguibind ${SRC_IMGUIBIND})
-
 
 #========== Global Configurations =============#
 
 set(CMAKE_CXX_STANDARD 17)     
 set(CMAKE_VERBOSE_MAKEFILE ON)
+
+
+#========== conan imgui =============#
+set(SRC_DIR_IMGUI "external/imgui")
+set(SRC_IMGUIBIND ${SRC_DIR_IMGUI}/imgui_impl_opengl3.cpp ${SRC_DIR_IMGUI}/imgui_impl_sdl2.cpp)
+add_library(imguibind ${SRC_IMGUIBIND})
 
 
 #========== Targets Configurations ============#
