@@ -86,6 +86,10 @@ class Main
 
 public:
 
+  Main()
+    : _logger{ helpers::imgui::Logger::GetInstance() }
+  {  }
+
   int run()
   {
     // # Init rendering environment
@@ -100,6 +104,10 @@ public:
     bool success = _sceneWindow.init();
     assert(success);
     _square = test::SetUpRectangle();
+
+    _logger.logInfo("1");
+    _logger.logWarning("2");
+    _logger.logError("3");
 
     // # Enter main loop
     _renderer.run();
@@ -121,6 +129,9 @@ private:
   helpers::imgui::WindowRender _sceneWindow{ "Scene" };
   test::Rectangle_t _square;
 
+  helpers::imgui::Logger& _logger;
+
+  // # Renderer
   helpers::Renderer _renderer;
 
 private:
@@ -133,8 +144,8 @@ private:
     glClearColor(self->_colorBackground.r, self->_colorBackground.g, self->_colorBackground.b, self->_colorBackground.a);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    //// ## Scene
-    //// ### Sends the opengl commands into the helper window 
+    // ## Scene
+    // ### Sends the opengl commands into the helper window 
     self->_sceneWindow.begin();
     glUseProgram(self->_square.hProgrammShader);
     glBindVertexArray(self->_square.hVao); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
@@ -143,7 +154,10 @@ private:
     // ### draw the helper window
     self->_sceneWindow.draw();
 
-    //// ## Test imgui window
+    // ## Logger
+    self->_logger.draw("logger");
+
+    // ## Test imgui window
     test::Imgui_TestWindow();
   }
 

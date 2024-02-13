@@ -1,10 +1,13 @@
 #pragma once
 
+#include <mutex>
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
 #include <SDL2/SDL_opengl_glext.h>
 
 #include <imgui.h>
+
 
 namespace helpers
 {
@@ -45,6 +48,41 @@ namespace helpers
       const std::string _title;
       ImVec2            _size = { 640.f, 480.f };
 
+    };
+
+    
+    class Logger
+    {
+
+    public:
+      Logger();
+
+    static Logger& GetInstance() {
+        return _Instance;
+      }
+
+      void clear();      
+
+      void logInfo(const std::string& str);
+
+      void logWarning(const std::string& str);
+
+      void logError(const std::string& str);
+
+      void draw(const char* title, bool* p_open = nullptr);
+
+    private:
+
+      void addLog(const char* fmt, ...) IM_FMTARGS(2);
+
+      static Logger _Instance;
+
+      ImGuiTextBuffer     _buf;
+      ImGuiTextFilter     _filter;
+      ImVector<int>       _lineOffsets; // Index to lines offset. We maintain this with AddLog() calls.
+      bool                _bAutoScroll;  // Keep scrolling if already at the bottom.
+
+      std::mutex _mutex;
     };
 
   }
