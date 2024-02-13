@@ -51,11 +51,14 @@ namespace helpers
         if (event.type == SDL_QUIT) {
           quit = true;
         }
-        if (event.type == SDL_WINDOWEVENT
+        else if (event.type == SDL_WINDOWEVENT
           && event.window.event == SDL_WINDOWEVENT_CLOSE
           && event.window.windowID == SDL_GetWindowID(_pContext->mainWindow))
         {
           quit = true;
+        }
+        else {
+          _pRunnable->processEvent(event);
         }
       }
 
@@ -66,7 +69,7 @@ namespace helpers
       ImGui::NewFrame();
 
       // # RUN CUSTOM RENDER CODE
-      _pFctRenderFrame(_pRendererParam);
+      _pRunnable->renderFrame();
 
       // # imgui render
       ImGui::Render();
@@ -75,16 +78,6 @@ namespace helpers
       ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
       SDL_GL_SwapWindow(_pContext->mainWindow); // swap the buffers work and display buffers
     }
-  }
-
-
-  void Renderer::setCallbacks(FctRenderFrame_t pFctRenderFrame, void* pRendererParam,
-    FctProcessEvents_t pFctProcessEvents, void* pProcessEventsParam)
-  {
-    _pFctRenderFrame = pFctRenderFrame;
-    _pRendererParam = pRendererParam;
-    _pFctProcessEvents = pFctProcessEvents;
-    _pProcessEventsParam = pProcessEventsParam;
   }
 
 

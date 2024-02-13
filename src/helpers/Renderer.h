@@ -10,8 +10,16 @@
 namespace helpers 
 {
 
-  typedef void (*FctRenderFrame_t)(void* const param);
-  typedef void (*FctProcessEvents_t)(void* const param, const SDL_Event events);
+  class Runnable
+  {
+  public:
+    virtual int run() = 0;
+
+    virtual void renderFrame() = 0;
+
+    virtual void processEvent(const SDL_Event events) = 0;
+  };
+
 
   struct Context
   {
@@ -37,19 +45,17 @@ namespace helpers
 
     void run();
 
-    void setCallbacks(FctRenderFrame_t pFctRenderFrame, void* pRendererParam,
-                      FctProcessEvents_t pFctProcessEvents, void* pProcessEventsParam);
+    void setRunnable(Runnable* pRunnable)
+    {
+      _pRunnable = pRunnable;
+    }
 
   private:
 
     std::unique_ptr<Context> initOpengl(const int winWidth, const int winHeight);
     void initImgui();
 
-    FctRenderFrame_t _pFctRenderFrame = nullptr;
-    FctProcessEvents_t _pFctProcessEvents = nullptr;
-
-    void* _pRendererParam = nullptr;
-    void* _pProcessEventsParam = nullptr;
+    Runnable* _pRunnable = nullptr;
 
     std::unique_ptr<Context> _pContext;
   };

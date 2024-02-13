@@ -81,7 +81,7 @@ static void RenderFrame(void)
 
 }
 
-class Main
+class Main : public helpers::Runnable
 {
 
 public:
@@ -98,7 +98,7 @@ public:
       std::cerr << "Cannot init SDL and OpenGl" << std::endl;
       return -1;
     }
-    _renderer.setCallbacks(RenderFrame, this, ProcessEvents, this);
+    _renderer.setRunnable(this);
 
     // # Init attributes
     bool success = _sceneWindow.init();
@@ -136,34 +136,31 @@ private:
 
 private:
 
-  static void RenderFrame(void* const param)
+  virtual void renderFrame() override
   {
-    Main* const self = reinterpret_cast<Main*>(param);
-
     // ## opengl main framebuffer
-    glClearColor(self->_colorBackground.r, self->_colorBackground.g, self->_colorBackground.b, self->_colorBackground.a);
+    glClearColor(_colorBackground.r, _colorBackground.g, _colorBackground.b, _colorBackground.a);
     glClear(GL_COLOR_BUFFER_BIT);
 
     // ## Scene
     // ### Sends the opengl commands into the helper window 
-    self->_sceneWindow.begin();
-    glUseProgram(self->_square.hProgrammShader);
-    glBindVertexArray(self->_square.hVao); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-    glDrawElements(GL_TRIANGLES, self->_square.nbIndices, GL_UNSIGNED_INT, 0);
-    self->_sceneWindow.end();
+    _sceneWindow.begin();
+    glUseProgram(_square.hProgrammShader);
+    glBindVertexArray(_square.hVao); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+    glDrawElements(GL_TRIANGLES, _square.nbIndices, GL_UNSIGNED_INT, 0);
+    _sceneWindow.end();
     // ### draw the helper window
-    self->_sceneWindow.draw();
+    _sceneWindow.draw();
 
     // ## Logger
-    self->_logger.draw("logger");
+    _logger.draw("logger");
 
     // ## Test imgui window
     test::Imgui_TestWindow();
   }
 
-  static void ProcessEvents(void* const param, const SDL_Event events)
+  virtual void processEvent(const SDL_Event events) override
   {
-    (void)(param);
     (void)(events);
   }
 
