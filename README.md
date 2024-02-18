@@ -12,10 +12,10 @@ As a test, it will draw an orange rectangle and an "Hello World" box in a SDL2 w
 This project requires *Dear Imgui*, *sdl2* and *glew*. Also all paths required to use *glm* will be set-up.
 Those dependencies are handled by [*conan*](https://conan.io/).
 
-Install *conan* and add the *bincrafters* public repository:
+Install *conan 1.x*:
 
 ```bash
-> pip install conan  
+> pip install 'conan<2.0'  
 > conan remote add bincrafters https://bincrafters.jfrog.io/artifactory/api/conan/public-conan
 > conan config set general.revisions_enabled=1
 ```

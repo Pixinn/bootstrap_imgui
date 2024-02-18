@@ -1,24 +1,27 @@
-// MIT LICENSE
+//MIT License
 //
-// Copyright(c) 2019
-// Christophe Meneboeuf <christophe@xtof.info>
-// Joey De Vries < https://joeydevries.com/#contact>
+//Copyright(c) 2024
+//Christophe Meneboeuf <christophe@xtof.info>
+//Joey De Vries < https://joeydevries.com/#contact>
 //
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files(the “Software”), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions :
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-// THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-// ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-// OTHER DEALINGS IN THE SOFTWARE.
+//Permission is hereby granted, free of charge, to any person obtaining a copy
+//of this software and associated documentation files(the "Software"), to deal
+//in the Software without restriction, including without limitation the rights
+//to use, copy, modify, merge, publish, distribute, sublicense, and /or sell
+//copies of the Software, and to permit persons to whom the Software is
+//furnished to do so, subject to the following conditions :
+//
+//The above copyright notice and this permission notice shall be included in all
+//copies or substantial portions of the Software.
+//
+//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+//SOFTWARE.
+
 
 
 
@@ -27,8 +30,15 @@
 // It will draw an orange squared as a test
 // HEAVY borrows from: https://learnopengl.com/Getting-started/Hello-Triangle
 
+#ifdef IS_WINDOWS
+  #include <Windows.h>
+#else
+  #include <unistd.h>
+#endif
+
 #include <cassert>
 #include <iostream>
+#include <filesystem>
 
 // OpenGL
 #include <glm/glm.hpp>
@@ -39,17 +49,17 @@
 #include <SDL2/SDL_opengl_glext.h>
 // DearIMGUI
 #include <imgui.h>
-#include <imgui_impl_opengl3.h>
-#include <imgui_impl_sdl2.h>
 
 #include "helpers/HelpersImgui.h"
 #include "helpers/HelpersOpenGl.h"
+#include "helpers/Logger.h"
 #include "helpers/Renderer.h"
 
 
+char PATH_EXECUTABLE[256];
 
 static constexpr int SCREEN_WIDTH = 1600;
-static constexpr int SCREEN_HEIGHT = 1200;
+static constexpr int SCREEN_HEIGHT = 900;
 
 static constexpr int OPENGL_MAJOR_VERSION = 3;
 static constexpr int OPENGL_MINOR_VERSION = 3;
@@ -88,7 +98,16 @@ public:
 
   Main()
     : _logger{ helpers::imgui::Logger::GetInstance() }
-  {  }
+  { 
+const     size_t len = sizeof(PATH_EXECUTABLE);
+#ifdef IS_WINDOWS
+    GetModuleFileName(nullptr, PATH_EXECUTABLE, len);  
+#else
+  int bytes = MIN(readlink("/proc/self/exe", PATH_EXECUTABLE, len), len - 1);
+  if (bytes >= 0)
+    pBuf[bytes] = '\0';
+#endif
+  }
 
   int run()
   {
@@ -103,11 +122,40 @@ public:
     // # Init attributes
     bool success = _sceneWindow.init();
     assert(success);
+    // ## Pluging the imgui logger into the general logger
+    helpers::Logger::GetInstance()->setPrinter(
+      [this](const helpers::Logger::Log_t& log)
+      {
+        static std::mutex MutexLogger;
+        std::lock_guard<std::mutex> lock{ MutexLogger };
+        switch (log.level)
+        {
+        case helpers::Logger::eLevel::DEBUG:
+          _logger.logInfo(log.msg);
+          break;
+        case helpers::Logger::eLevel::INFO:
+          _logger.logInfo(log.msg);
+          break;
+        case helpers::Logger::eLevel::WARN:
+          _logger.logWarning(log.msg);
+          break;
+        case helpers::Logger::eLevel::ERR:
+          _logger.logError(log.msg);
+          break;
+        default:
+          assert(false);
+          break;
+        }
+      }
+    );
+    helpers::Logger::GetInstance()->debug("Test debug");
+    helpers::Logger::GetInstance()->info("Test info");
+    helpers::Logger::GetInstance()->warning("Test warning");
+    helpers::Logger::GetInstance()->error("Test error");
+    // # Example geometries
     _square = test::SetUpRectangle();
 
-    _logger.logInfo("1");
-    _logger.logWarning("2");
-    _logger.logError("3");
+
 
     // # Enter main loop
     _renderer.run();
@@ -153,7 +201,7 @@ private:
     _sceneWindow.draw();
 
     // ## Logger
-    _logger.draw("logger");
+    _logger.draw("Logger");
 
     // ## Test imgui window
     test::Imgui_TestWindow();
@@ -182,62 +230,27 @@ int main(int argc, char *argv[])
 namespace test
 {
 
-  // Shader sources
-  static const char *Src_Shader_Vertex = "#version 330 core\n"
-    "layout (location = 0) in vec3 aPos;\n"
-    "void main()\n"
-    "{\n"
-    "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-    "}\0";
-  static const char *Src_Shader_Fragment = "#version 330 core\n"
-    "out vec4 FragColor;\n"
-    "void main()\n"
-    "{\n"
-    "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-    "}\n\0";
 
   Rectangle_t SetUpRectangle()
   {
-    // build and compile our shader program
-    // ------------------------------------
-    // vertex shader
-    const auto shader_vertex = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(shader_vertex, 1, &Src_Shader_Vertex, NULL);
-    glCompileShader(shader_vertex);
-    // check for shader compile errors
-    int success;
-    static char Info_Log[512];
-    glGetShaderiv(shader_vertex, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-      glGetShaderInfoLog(shader_vertex, 512, NULL, Info_Log);
-      std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << Info_Log << std::endl;
-    }
-    // fragment shader
-    const auto shader_fragment = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(shader_fragment, 1, &Src_Shader_Fragment, NULL);
-    glCompileShader(shader_fragment);
-    // check for shader compile errors
-    glGetShaderiv(shader_fragment, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-      glGetShaderInfoLog(shader_fragment, 512, NULL, Info_Log);
-      std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << Info_Log << std::endl;
-    }
+    std::filesystem::path pathExe{ PATH_EXECUTABLE };
+    const auto pathShaderVertex = pathExe.parent_path() / "shaders" / "square.vert";
+    const auto pathShaderFragment = pathExe.parent_path() / "shaders" / "square.frag";
+    const auto pShaderVertex = helpers::opengl::FactoryShader::Create(pathShaderVertex.string(), GL_VERTEX_SHADER);
+    const auto pShaderFragment = helpers::opengl::FactoryShader::Create(pathShaderFragment.string(), GL_FRAGMENT_SHADER);
     // link shaders into the program
     const auto program_shaders = glCreateProgram();
-    glAttachShader(program_shaders, shader_vertex);
-    glAttachShader(program_shaders, shader_fragment);
+    glAttachShader(program_shaders, pShaderVertex->handle());
+    glAttachShader(program_shaders, pShaderFragment->handle());
     glLinkProgram(program_shaders);
     // check for linking errors
+    int success;
+    static char Info_Log[512];
     glGetProgramiv(program_shaders, GL_LINK_STATUS, &success);
     if (!success) {
       glGetProgramInfoLog(program_shaders, 512, NULL, Info_Log);
       std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << Info_Log << std::endl;
     }
-    glDeleteShader(shader_vertex);
-    glDeleteShader(shader_fragment);
-
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float vertices[] = {

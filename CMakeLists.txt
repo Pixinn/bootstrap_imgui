@@ -26,21 +26,36 @@ add_library(imguibind ${SRC_IMGUIBIND})
 
 #========== Targets Configurations ============#
 # helpers library
-add_library(helpers  src/helpers/Renderer.h
+add_library(helpers  src/helpers/TDequeConcurrent
+                     src/helpers/Renderer.h
                      src/helpers/Renderer.cpp
+                     src/helpers/Logger.h
+                     src/helpers/Logger.cpp
                      src/helpers/HelpersOpenGl.h
                      src/helpers/HelpersOpenGl.cpp
                      src/helpers/HelpersImgui.h
                      src/helpers/HelpersImgui.cpp
 )
-target_include_directories(helpers PUBLIC src ${SRC_DIR_IMGUI})
+target_include_directories(helpers PUBLIC src external)
 
 # project sources
 add_executable(${PROJECT_NAME}
-    src/main.cpp   
+    src/example/main.cpp   
 )
+
                          
 # set executable dependecies
 target_link_libraries(${PROJECT_NAME} helpers imguibind)
 conan_set_find_library_paths(${PROJECT_NAME})
 conan_target_link_libraries(${PROJECT_NAME})
+
+# compilation definitions
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+  target_compile_definitions(${PROJECT_NAME} PUBLIC "IS_WINDOWS")
+endif()
+
+# install resources
+# install(DIRECTORY "src/example/shaders" DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                       ${CMAKE_SOURCE_DIR}/src/example/shaders/ $<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders)

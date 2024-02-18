@@ -21,67 +21,55 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
 
-#pragma once
+#include <mutex>
 
-#include <iostream>
-#include <memory>
-
-#include "HelpersOpenGl.h"
-#include "HelpersImgui.h"
+#include "Logger.h"
 
 
-namespace helpers 
+namespace helpers
 {
 
-  class Runnable
-  {
-  public:
-    virtual int run() = 0;
-
-    virtual void renderFrame() = 0;
-
-    virtual void processEvent(const SDL_Event events) = 0;
-  };
+    Logger* Logger::_PInstance = nullptr;
 
 
-  struct Context
-  {
-    SDL_GLContext opengl = nullptr;
-    SDL_Window* mainWindow = nullptr;
-
-    Context() = default;
-    ~Context();
-
-    inline bool isValid() const { return _isValid; }
-
-    bool _isValid = false;
-
-  };
-
-
-  class Renderer
-  {
-
-  public:
-
-    bool init(int winWidth, int winHeight);
-
-    void run();
-
-    void setRunnable(Runnable* pRunnable)
+    Logger::~Logger()
     {
-      _pRunnable = pRunnable;
+        if(_pThread != nullptr)
+        {
+          _stopRequired.store(true);
+            _pThread->join();
+            delete _pThread;
+        }
     }
 
-  private:
+    bool Logger::log(const Log_t& log)
+    {
+      if (_pThread == nullptr) {
+        return false;
+      }
+      
+      _logs.emplace_back(log);
+      return true;
+    }
 
-    std::unique_ptr<Context> initOpengl(const int winWidth, const int winHeight);
-    void initImgui();
+    bool Logger::init()
+    {        
+        if(_pThread == nullptr)
+        {
+            _pThread = new std::thread(
+                [this]()
+                {
+                    while(!this->_stopRequired.load())
+                    {
+                        const auto log = _logs.pop_front();
+                        _print(log);
+                    }
+                }
+            );
+            return _pThread != nullptr;  
+        }
+        _stopRequired = false;
+        return false;
+    }
 
-    Runnable* _pRunnable = nullptr;
-
-    std::unique_ptr<Context> _pContext;
-  };
-
-   
 } // helpers
