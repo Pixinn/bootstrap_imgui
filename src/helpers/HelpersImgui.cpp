@@ -136,25 +136,25 @@ namespace helpers
     void Logger::logDebug(const std::string& str)
     {
       const std::string info = "[debug]    " + str + '\n';
-      addLog(info.c_str());
+      addLog("%s", info.c_str());
     }
 
     void Logger::logInfo(const std::string& str)
     {
       const std::string info = "[info]    " + str + '\n';
-      addLog(info.c_str());
+      addLog("%s", info.c_str());
     }
 
     void Logger::logWarning(const std::string& str)
     {
       const std::string warn = "[warning] " + str + '\n';
-      addLog(warn.c_str());
+      addLog("%s", warn.c_str());
     }
 
     void Logger::logError(const std::string& str)
     {
       const std::string err = "[error]   " + str + '\n';
-      addLog(err.c_str());
+      addLog("%s", err.c_str());
     }
 
     void Logger::addLog(const char* fmt, ...)

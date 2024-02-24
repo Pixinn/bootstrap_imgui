@@ -26,7 +26,7 @@ add_library(imguibind ${SRC_IMGUIBIND})
 
 #========== Targets Configurations ============#
 # helpers library
-add_library(helpers  src/helpers/TDequeConcurrent
+add_library(helpers  src/helpers/TDequeConcurrent.h
                      src/helpers/Renderer.h
                      src/helpers/Renderer.cpp
                      src/helpers/Logger.h
@@ -52,6 +52,8 @@ conan_target_link_libraries(${PROJECT_NAME})
 # compilation definitions
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
   target_compile_definitions(${PROJECT_NAME} PUBLIC "IS_WINDOWS")
+elseif(CMAKE_SYSTEM_NAME STREQUAL  "Darwin")
+  target_compile_definitions(${PROJECT_NAME} PUBLIC "IS_MACOS")
 endif()
 
 # install resources

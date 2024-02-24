@@ -32,6 +32,8 @@
 
 #ifdef IS_WINDOWS
   #include <Windows.h>
+#elif IS_MACOS
+  #include <mach-o/dyld.h>
 #else
   #include <unistd.h>
 #endif
@@ -56,7 +58,7 @@
 #include "helpers/Renderer.h"
 
 
-char PATH_EXECUTABLE[256];
+char PATH_EXECUTABLE[1024];
 
 static constexpr int SCREEN_WIDTH = 1600;
 static constexpr int SCREEN_HEIGHT = 900;
@@ -99,9 +101,15 @@ public:
   Main()
     : _logger{ helpers::imgui::Logger::GetInstance() }
   { 
-const     size_t len = sizeof(PATH_EXECUTABLE);
+uint32_t len = sizeof(PATH_EXECUTABLE);
 #ifdef IS_WINDOWS
-    GetModuleFileName(nullptr, PATH_EXECUTABLE, len);  
+    GetModuleFileName(nullptr, PATH_EXECUTABLE, len);
+#elif IS_MACOS
+  const bool success = (_NSGetExecutablePath(PATH_EXECUTABLE, &len) == 0);
+  if(!success) {
+    std::cout << "ERROR executable path is too long" << std::endl;
+    exit(-1);
+  }
 #else
   int bytes = MIN(readlink("/proc/self/exe", PATH_EXECUTABLE, len), len - 1);
   if (bytes >= 0)
@@ -109,12 +117,12 @@ const     size_t len = sizeof(PATH_EXECUTABLE);
 #endif
   }
 
-  int run()
+  int run() override
   {
     // # Init rendering environment
     if (!_renderer.init(SCREEN_WIDTH, SCREEN_HEIGHT))
     {
-      std::cerr << "Cannot init SDL and OpenGl" << std::endl;
+      std::cout << "Cannot init SDL and OpenGl" << std::endl;
       return -1;
     }
     _renderer.setRunnable(this);
