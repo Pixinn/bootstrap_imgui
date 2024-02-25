@@ -24,17 +24,11 @@
 
 
 
-
-
-// This code will gets you started with OpenGL Core + SDL2
-// It will draw an orange squared as a test
-// HEAVY borrows from: https://learnopengl.com/Getting-started/Hello-Triangle
-
 #ifdef IS_WINDOWS
   #include <Windows.h>
 #elif IS_MACOS
   #include <mach-o/dyld.h>
-#else
+#else // may not work if not Linux
   #include <unistd.h>
 #endif
 
@@ -73,14 +67,15 @@ static constexpr auto GLSL_VERSION = "#version 330 core";
 
 namespace test {
 
-  // Required element to draw the OpenGL test rectangle
-  struct Rectangle_t {
+  // Required element to draw the OpenGL test shapes
+  struct Shape_t {
     unsigned hProgrammShader;
-    unsigned hVao;
+    unsigned hVao;  // a VAO is associated to a VBA stores all the vertex attributes in a single place
     unsigned nbIndices;
   };
-  // Sets the OpenGl rectangle
-  Rectangle_t SetUpRectangle();
+  // Sets the OpenGl shapes
+  Shape_t SetUpQuad();
+  Shape_t SetUpTriangle();
 
   // Sets Dear Imgui test window
   void Imgui_TestWindow();
@@ -128,7 +123,9 @@ uint32_t len = sizeof(PATH_EXECUTABLE);
     _renderer.setRunnable(this);
 
     // # Init attributes
-    bool success = _sceneWindow.init();
+    bool success = _quadWindow.init();
+    assert(success);
+    success = _triangleWindow.init();
     assert(success);
     // ## Pluging the imgui logger into the general logger
     helpers::Logger::GetInstance()->setPrinter(
@@ -161,7 +158,8 @@ uint32_t len = sizeof(PATH_EXECUTABLE);
     helpers::Logger::GetInstance()->warning("Test warning");
     helpers::Logger::GetInstance()->error("Test error");
     // # Example geometries
-    _square = test::SetUpRectangle();
+    _quad = test::SetUpQuad();
+    _triangle = test::SetUpTriangle();
 
 
 
@@ -182,8 +180,10 @@ private:
     float a = 1.0f;
   } _colorBackground;
 
-  helpers::imgui::WindowRender _sceneWindow{ "Scene" };
-  test::Rectangle_t _square;
+  helpers::imgui::WindowRender _quadWindow{ "Quad" };
+  test::Shape_t _quad;
+  helpers::imgui::WindowRender _triangleWindow{ "Triangle" };
+  test::Shape_t _triangle;
 
   helpers::imgui::Logger& _logger;
 
@@ -199,14 +199,20 @@ private:
     glClear(GL_COLOR_BUFFER_BIT);
 
     // ## Scene
-    // ### Sends the opengl commands into the helper window 
-    _sceneWindow.begin();
-    glUseProgram(_square.hProgrammShader);
-    glBindVertexArray(_square.hVao); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-    glDrawElements(GL_TRIANGLES, _square.nbIndices, GL_UNSIGNED_INT, 0);
-    _sceneWindow.end();
-    // ### draw the helper window
-    _sceneWindow.draw();
+    // ### Sends the opengl commands into the helper windows 
+    _quadWindow.begin();
+    glUseProgram(_quad.hProgrammShader);
+    glBindVertexArray(_quad.hVao); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+    glDrawElements(GL_TRIANGLES, _quad.nbIndices, GL_UNSIGNED_INT, 0);
+    _quadWindow.end();
+    _triangleWindow.begin();
+    glUseProgram(_triangle.hProgrammShader);
+    glBindVertexArray(_triangle.hVao); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+    glDrawElements(GL_TRIANGLES, _triangle.nbIndices, GL_UNSIGNED_INT, 0);
+    _triangleWindow.end();
+    // ### draw the helper windows
+    _quadWindow.draw();
+    _triangleWindow.draw();
 
     // ## Logger
     _logger.draw("Logger");
@@ -238,14 +244,28 @@ int main(int argc, char *argv[])
 namespace test
 {
 
-
-  Rectangle_t SetUpRectangle()
+  struct VertexCollection_t
   {
-    std::filesystem::path pathExe{ PATH_EXECUTABLE };
-    const auto pathShaderVertex = pathExe.parent_path() / "shaders" / "square.vert";
-    const auto pathShaderFragment = pathExe.parent_path() / "shaders" / "square.frag";
+    float* data = nullptr;
+    std::size_t sizeOfData = 0;
+    bool bHasColor = false;
+  };
+
+  struct IndiceCollection_t
+  {
+    unsigned* data = nullptr;
+    std::size_t sizeOfData = 0;
+  };
+
+  Shape_t SetUpShape(
+                     const VertexCollection_t& vertices,
+                     const IndiceCollection_t& indices,
+                     const std::filesystem::path& pathShaderVertex,
+                     const std::filesystem::path& pathShaderFrag
+                    )
+  {
     const auto pShaderVertex = helpers::opengl::FactoryShader::Create(pathShaderVertex.string(), GL_VERTEX_SHADER);
-    const auto pShaderFragment = helpers::opengl::FactoryShader::Create(pathShaderFragment.string(), GL_FRAGMENT_SHADER);
+    const auto pShaderFragment = helpers::opengl::FactoryShader::Create(pathShaderFrag.string(), GL_FRAGMENT_SHADER);
     // link shaders into the program
     const auto program_shaders = glCreateProgram();
     glAttachShader(program_shaders, pShaderVertex->handle());
@@ -259,19 +279,6 @@ namespace test
       glGetProgramInfoLog(program_shaders, 512, NULL, Info_Log);
       std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << Info_Log << std::endl;
     }
-    // set up vertex data (and buffer(s)) and configure vertex attributes
-    // ------------------------------------------------------------------
-    float vertices[] = {
-         0.5f,  0.5f, 0.0f,  // top right
-         0.5f, -0.5f, 0.0f,  // bottom right
-        -0.5f, -0.5f, 0.0f,  // bottom left
-        -0.5f,  0.5f, 0.0f   // top left 
-    };
-    // Referencing the vertices to share them between the two triangles
-    unsigned int indices[] = {  // note that we start from 0!
-        0, 1, 3,  // first Triangle
-        1, 2, 3   // second Triangle
-    };
     unsigned int vbo, vao, ebo;
     glGenVertexArrays(1, &vao);
     glGenBuffers(1, &vbo);
@@ -280,14 +287,26 @@ namespace test
     glBindVertexArray(vao); // ebo will be hosted in the vao
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.sizeOfData, vertices.data, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.sizeOfData, indices.data, GL_STATIC_DRAW);
 
-    // Configure and enable vertex attribute #0 ("location" 0 in the verter shader)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
+    // Configure and enable vertex attribute #0 ("location" 0 in the verter shader): vertex coordinates
+    GLuint location = 0;
+    void* offset = nullptr;
+    const GLsizei stride = vertices.bHasColor ?
+                        6 * sizeof(GL_FLOAT) :
+                        3 * sizeof(GL_FLOAT);
+    glVertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, stride, offset);
+    glEnableVertexAttribArray(location);
+    if(vertices.bHasColor) {
+      // Configure and enable vertex attribute #1 ("location" 1 in the verter shader): vertex color
+      location = 1;
+      offset = (void*)(3 * sizeof(GL_FLOAT));
+      glVertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, stride, offset);
+      glEnableVertexAttribArray(location);
+    }
 
     // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -296,11 +315,65 @@ namespace test
     // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
     glBindVertexArray(0);
 
+    const unsigned nb_indices = indices.sizeOfData / sizeof(decltype(indices.data[0]));
+
     return {
       program_shaders,
       vao,
-      6
+      nb_indices
     };
+  }
+
+  Shape_t SetUpQuad()
+  {
+    // path to shaders
+    std::filesystem::path pathExe{ PATH_EXECUTABLE };
+    const auto pathShaderVertex = pathExe.parent_path() / "shaders" / "square.vert";
+    const auto pathShaderFragment = pathExe.parent_path() / "shaders" / "square.frag";
+   
+    // set up vertex data (and buffer(s)) and configure vertex attributes
+    // ------------------------------------------------------------------
+    float vertices[] = {
+         0.5f,  0.5f, 0.0f,  // top right
+         0.5f, -0.5f, 0.0f,  // bottom right 
+        -0.5f, -0.5f, 0.0f,  // bottom left
+        -0.5f,  0.5f, 0.0f   // top left 
+    };
+    // Referencing the vertices to share them between the two triangles
+    unsigned int indices[] = {  // note that we start from 0!
+        0, 1, 3,  // first Triangle
+        1, 2, 3   // second Triangle
+    };
+    
+    return SetUpShape({vertices, sizeof(vertices), false},
+                      {indices, sizeof(indices)},
+                      pathShaderVertex, pathShaderFragment);
+  }
+
+  Shape_t SetUpTriangle()
+  {
+    // path to shaders
+    std::filesystem::path pathExe{ PATH_EXECUTABLE };
+    const auto pathShaderVertex = pathExe.parent_path() / "shaders" / "triangle.vert";
+    const auto pathShaderFragment = pathExe.parent_path() / "shaders" / "triangle.frag";
+
+    // set up vertex data (and buffer(s)) and configure vertex attributes
+    // ------------------------------------------------------------------
+    float vertices[] = {
+      //x,    //y,    //z,   //r,   //g,   //b
+      -1.0f,  1.0f,   0.0f,  1.0f,  0.0f,  0.0f,  // bottom left
+      1.0f,   1.0f,   0.0f,  0.0f,  1.0f,  0.0f,  // bottom right
+      0.0f,  -1.0f,   0.0f,  0.0f,  0.0f,  1.0f   // top
+    };
+    // Referencing the vertices
+    unsigned int indices[] = {  // note that we start from 0!
+      0, 1, 2,  // a bit useless here because only a single Triangle
+    };
+    
+    return SetUpShape({vertices, sizeof(vertices), true},
+                      {indices, sizeof(indices)},
+                      pathShaderVertex, pathShaderFragment);
+
   }
 
 
