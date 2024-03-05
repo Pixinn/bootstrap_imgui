@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.20)
 
 # Project name - should not contain whitespace 
 project(bootstrap_imgui)
@@ -58,6 +58,11 @@ endif()
 
 # install resources
 # install(DIRECTORY "src/example/shaders" DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
-                   COMMAND ${CMAKE_COMMAND} -E copy_directory
-                       ${CMAKE_SOURCE_DIR}/src/example/shaders/ $<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders)
+add_custom_command(TARGET  ${PROJECT_NAME} PRE_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different 
+                           ${CMAKE_SOURCE_DIR}/src/example/assets/ $<TARGET_FILE_DIR:${PROJECT_NAME}>/assets
+)
+add_custom_command(TARGET  ${PROJECT_NAME} PRE_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different 
+                           ${CMAKE_SOURCE_DIR}/src/example/shaders/ $<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders                
+)

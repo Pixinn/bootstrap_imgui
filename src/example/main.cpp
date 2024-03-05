@@ -69,9 +69,10 @@ namespace test {
 
   // Required element to draw the OpenGL test shapes
   struct Shape_t {
-    unsigned hProgrammShader;
-    unsigned hVao;  // a VAO is associated to a VBA stores all the vertex attributes in a single place
-    unsigned nbIndices;
+    GLuint hProgrammShader = 0;
+    GLuint hTexture = 0;
+    GLuint hVao = 0;  // a VAO is associated to a VBA stores all the vertex attributes in a single place    
+    unsigned nbIndices = 0;
   };
   // Sets the OpenGl shapes
   Shape_t SetUpQuad();
@@ -159,6 +160,10 @@ uint32_t len = sizeof(PATH_EXECUTABLE);
     helpers::Logger::GetInstance()->error("Test error");
     // # Example geometries
     _quad = test::SetUpQuad();
+    std::filesystem::path pathExe{ PATH_EXECUTABLE };
+    std::filesystem::path pathTexture = pathExe.parent_path() / "assets" / "texture.png";
+    auto pTexture = helpers::opengl::FactoryTexture::Create(pathTexture.string());
+    _quad.hTexture = pTexture->handle();
     _triangle = test::SetUpTriangle();
 
 
@@ -202,9 +207,11 @@ private:
     // ### Sends the opengl commands into the helper windows 
     _quadWindow.begin();
     glUseProgram(_quad.hProgrammShader);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, _quad.hTexture);    
     glBindVertexArray(_quad.hVao); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
     glDrawElements(GL_TRIANGLES, _quad.nbIndices, GL_UNSIGNED_INT, 0);
-    _quadWindow.end();
+    _quadWindow.end();   
     _triangleWindow.begin();
     glUseProgram(_triangle.hProgrammShader);
     glBindVertexArray(_triangle.hVao); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
@@ -246,9 +253,16 @@ namespace test
 
   struct VertexCollection_t
   {
+    enum eOPTIONS
+    {
+      NONE = 0,
+      HAS_COLOR = 1,
+      HAS_TEXTURE = 2
+    };
+
     float* data = nullptr;
     std::size_t sizeOfData = 0;
-    bool bHasColor = false;
+    eOPTIONS options = NONE;
   };
 
   struct IndiceCollection_t
@@ -294,17 +308,28 @@ namespace test
 
     // Configure and enable vertex attribute #0 ("location" 0 in the verter shader): vertex coordinates
     GLuint location = 0;
-    void* offset = nullptr;
-    const GLsizei stride = vertices.bHasColor ?
-                        6 * sizeof(GL_FLOAT) :
-                        3 * sizeof(GL_FLOAT);
-    glVertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, stride, offset);
+    std::intptr_t offset = 0;
+    GLsizei stride = 3 * sizeof(GL_FLOAT);
+    if(vertices.options & VertexCollection_t::HAS_COLOR)
+      stride += 3 * sizeof(GL_FLOAT);
+    if(vertices.options & VertexCollection_t::HAS_TEXTURE)
+      stride += 2 * sizeof(GL_FLOAT);
+
+    glVertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, stride, (void*)offset);
     glEnableVertexAttribArray(location);
-    if(vertices.bHasColor) {
+    // color is always located BEFORE texture in the vertex buffer
+    if(vertices.options & VertexCollection_t::HAS_COLOR) {
       // Configure and enable vertex attribute #1 ("location" 1 in the verter shader): vertex color
-      location = 1;
-      offset = (void*)(3 * sizeof(GL_FLOAT));
-      glVertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, stride, offset);
+      ++location;
+      offset += 3 * sizeof(GL_FLOAT);
+      glVertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, stride, (void*)offset);
+      glEnableVertexAttribArray(location);
+    }
+    if (vertices.options & VertexCollection_t::HAS_TEXTURE) {
+      // Configure and enable vertex attribute #1 ("location" 1 or 2 in the verter shader): vertex texture coordinates
+      ++location;
+      offset += 3 * sizeof(GL_FLOAT);
+      glVertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, stride, (void*)offset);
       glEnableVertexAttribArray(location);
     }
 
@@ -315,12 +340,13 @@ namespace test
     // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
     glBindVertexArray(0);
 
-    const unsigned nb_indices = indices.sizeOfData / sizeof(decltype(indices.data[0]));
+    const std::size_t nb_indices = indices.sizeOfData / sizeof(decltype(indices.data[0]));
 
     return {
       program_shaders,
+      0, // texture
       vao,
-      nb_indices
+      static_cast<uint32_t>(nb_indices)
     };
   }
 
@@ -334,10 +360,11 @@ namespace test
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float vertices[] = {
-         0.5f,  0.5f, 0.0f,  // top right
-         0.5f, -0.5f, 0.0f,  // bottom right 
-        -0.5f, -0.5f, 0.0f,  // bottom left
-        -0.5f,  0.5f, 0.0f   // top left 
+      //x,   //y,    //z,   //u,   //v
+      0.75f, -0.75f,  0.0f,  1.0f,  0.0f,   // bottom right
+      0.75f,  0.75f,  0.0f,  1.0f,  1.0f,   // top right
+     -0.75f,  0.75f,  0.0f,  0.0f,  1.0f,   // top left
+     -0.75f, -0.75f,  0.0f,  0.0f,  0.0f    // bottom left
     };
     // Referencing the vertices to share them between the two triangles
     unsigned int indices[] = {  // note that we start from 0!
@@ -345,7 +372,7 @@ namespace test
         1, 2, 3   // second Triangle
     };
     
-    return SetUpShape({vertices, sizeof(vertices), false},
+    return SetUpShape({vertices, sizeof(vertices), VertexCollection_t::HAS_TEXTURE},
                       {indices, sizeof(indices)},
                       pathShaderVertex, pathShaderFragment);
   }
@@ -361,16 +388,16 @@ namespace test
     // ------------------------------------------------------------------
     float vertices[] = {
       //x,    //y,    //z,   //r,   //g,   //b
-      -1.0f,  1.0f,   0.0f,  1.0f,  0.0f,  0.0f,  // bottom left
-      1.0f,   1.0f,   0.0f,  0.0f,  1.0f,  0.0f,  // bottom right
-      0.0f,  -1.0f,   0.0f,  0.0f,  0.0f,  1.0f   // top
+     -1.0f,  -1.0f,   0.0f,  1.0f,  0.0f,  0.0f,  // bottom left
+      1.0f,  -1.0f,   0.0f,  0.0f,  1.0f,  0.0f,  // bottom right
+      0.0f,   1.0f,   0.0f,  0.0f,  0.0f,  1.0f   // top
     };
     // Referencing the vertices
     unsigned int indices[] = {  // note that we start from 0!
       0, 1, 2,  // a bit useless here because only a single Triangle
     };
     
-    return SetUpShape({vertices, sizeof(vertices), true},
+    return SetUpShape({vertices, sizeof(vertices), VertexCollection_t::HAS_COLOR},
                       {indices, sizeof(indices)},
                       pathShaderVertex, pathShaderFragment);
 

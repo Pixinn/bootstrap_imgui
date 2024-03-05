@@ -50,10 +50,11 @@ namespace helpers
     bool Texture::init(const std::string& path)
     {
       // load image
+      stbi_set_flip_vertically_on_load(1);
       unsigned char* imageData = stbi_load(path.c_str(), &_width, &_height, NULL, 4);
       if (imageData == nullptr) {
         stbi_image_free(imageData);
-        _lastError = "Cannot load image" + path;
+        _lastError = "Cannot load image " + path;
         return false;
       }
 
@@ -65,7 +66,7 @@ namespace helpers
       // load texture
       glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _width, _height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imageData);
-
+      
       // free resources
       stbi_image_free(imageData);
 
@@ -84,7 +85,10 @@ namespace helpers
     std::shared_ptr<Texture> FactoryTexture::Create(const std::string& path)
     {
       auto texture = std::make_shared<Texture>();
-      texture->init(path);
+      if (!texture->init(path))
+      {
+        helpers::Logger::GetInstance()->error("Cannot create texture: " + texture->error());
+      }
       return texture;
     }
 

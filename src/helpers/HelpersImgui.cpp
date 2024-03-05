@@ -112,7 +112,7 @@ namespace helpers
     void WindowRender::draw()
     {
       ImGui::Begin(_title.c_str());
-      ImGui::Image((void*)(intptr_t)_texture, _size);
+      ImGui::Image((void*)(intptr_t)_texture, _size, { 0, 1 }, { 1, 0 }); // inverting UV to match OGL coordinates
       ImGui::End();
     }
     

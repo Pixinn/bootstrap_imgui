@@ -1,6 +1,7 @@
 #version 330 core
 
 // input from the vertex attributes
+// every location must be declared with glVertexAttribPointer()
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aColor;
 // output to the fragment shader
