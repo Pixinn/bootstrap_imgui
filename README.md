@@ -28,7 +28,7 @@ The build chain is handled by *cmake*.
 
 ```bash
 > mkdir build && cd build
-> conan install ..
+> conan install .. --build=missing
 > cmake .. -DCMAKE_BUILD_TYPE=Release
 > cmake --build . --config Release
 ```

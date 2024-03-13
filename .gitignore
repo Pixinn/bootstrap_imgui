@@ -1,4 +1,7 @@
 .vscode/
 build*/
+external/imgui/
+external/imgui/*
 **/.DS_Store
 **/imgui.ini
+

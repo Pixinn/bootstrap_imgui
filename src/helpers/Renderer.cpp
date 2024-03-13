@@ -88,7 +88,7 @@ namespace helpers
       // ## New frame
       // ### imgui
       ImGui_ImplOpenGL3_NewFrame();
-      ImGui_ImplSDL2_NewFrame(_pContext->mainWindow);
+      ImGui_ImplSDL2_NewFrame();
       ImGui::NewFrame();
 
       // # RUN CUSTOM RENDER CODE

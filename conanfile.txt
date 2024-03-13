@@ -2,7 +2,7 @@
 sdl/2.28.5
 glew/[>=2.2.0]
 glm/[>=0.9.9]
-imgui/[>=1.90]
+imgui/[=1.90]
 
 [generators]
 cmake
