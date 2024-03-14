@@ -163,9 +163,9 @@ uint32_t len = sizeof(PATH_EXECUTABLE);
     std::filesystem::path pathExe{ PATH_EXECUTABLE };
     std::filesystem::path pathTexture = pathExe.parent_path() / "assets" / "texture.png";
     auto pTexture = helpers::opengl::FactoryTexture::Create(pathTexture.string());
+    _quadWindow.setAspectRatio(float(pTexture->width()) / float(pTexture->height()));
     _quad.hTexture = pTexture->handle();
     _triangle = test::SetUpTriangle();
-
 
 
     // # Enter main loop

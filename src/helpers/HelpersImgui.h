@@ -60,9 +60,21 @@ namespace helpers
       /// @brief Draws the window
       void draw();
 
+      /// @brief Constrains the widow to the provided aspect ratio (x:y)
+      /// @details Set to 0 to deactivate
+      void setAspectRatio(const float aspectRatio)
+      {
+        _aspectRatio = aspectRatio;
+      }
+
     private:
+      
+      /// @brief Calback to constrain aspect ratio
+      static void AspectRatio(ImGuiSizeCallbackData* data);
+
 
       bool _initialized = false;
+      float _aspectRatio = 0.f;      
 
       GLuint _frameBufferObject = 0;
       GLuint _renderBufferObject = 0;

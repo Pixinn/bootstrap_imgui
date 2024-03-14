@@ -64,12 +64,20 @@ namespace helpers
       return _initialized;
     }
 
+  
+    void WindowRender::AspectRatio(ImGuiSizeCallbackData* data)
+    {
+
+        const float aspectRatio = *(float*)data->UserData;
+        if (aspectRatio != 0.f)
+        {
+          data->DesiredSize.y = (float)(int)(data->DesiredSize.x / aspectRatio);
+        }
+    }
 
     void WindowRender::begin()
     {
-
-      // Get current window's size
-      //ImGui::SetNextWindowSize({ 128.f, 128.f }, ImGuiCond_FirstUseEver);
+      ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2(FLT_MAX, FLT_MAX), AspectRatio, (void*)&_aspectRatio);
       ImGui::Begin(_title.c_str());
       _size = ImGui::GetContentRegionAvail();
       ImGui::End();
@@ -115,7 +123,6 @@ namespace helpers
       ImGui::Image((void*)(intptr_t)_texture, _size, { 0, 1 }, { 1, 0 }); // inverting UV to match OGL coordinates
       ImGui::End();
     }
-    
 
     Logger Logger::_Instance;
 
