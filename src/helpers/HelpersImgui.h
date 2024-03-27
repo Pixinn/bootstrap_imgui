@@ -30,6 +30,7 @@
 #include <SDL2/SDL_opengl_glext.h>
 
 #include <imgui.h>
+#include <ImGuiColorTextEdit/TextEditor.h>
 
 
 namespace helpers
@@ -85,6 +86,31 @@ namespace helpers
 
     };
 
+    class WindowShader
+    {
+    public:
+
+      WindowShader(const std::string& windowTitle);
+
+      bool init(const GLuint hShader);
+
+      /// @brief returns true if a new source code is available
+      bool draw();
+
+      inline const char* getSourceCode() const { return _src; }
+
+      void setSourceCode(const GLuint shader);
+
+    private:
+      ImGuiColorTextEdit::TextEditor _editor;
+
+      static constexpr int MAX_SIZE_SRC = 10 * 1024;
+
+      const std::string _title;
+      char _src[MAX_SIZE_SRC];
+      GLuint _hShader = 0;
+
+    };
     
     class Logger
     {
@@ -106,7 +132,7 @@ namespace helpers
 
       void logError(const std::string& str);
 
-      void draw(const char* title, bool* p_open = nullptr);
+      void draw();
 
     private:
 
@@ -118,6 +144,7 @@ namespace helpers
       ImGuiTextFilter     _filter;
       ImVector<int>       _lineOffsets; // Index to lines offset. We maintain this with AddLog() calls.
       bool                _bAutoScroll;  // Keep scrolling if already at the bottom.
+      const std::string   _title{ "Logger" };
 
       std::mutex _mutex;
     };

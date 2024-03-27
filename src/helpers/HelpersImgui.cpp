@@ -111,7 +111,7 @@ namespace helpers
       glClear(GL_COLOR_BUFFER_BIT);
     }
 
-
+    
     void WindowRender::end()
     {
       glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -178,13 +178,13 @@ namespace helpers
     }
 
 
-    void    Logger::draw(const char* title, bool* p_open)
+    void    Logger::draw()
     {
       std::unique_lock<std::mutex> lock{ _mutex };
       ImGuiTextBuffer buf{ _buf };
       lock.unlock();
 
-      if (!ImGui::Begin(title, p_open))
+      if (!ImGui::Begin(_title.c_str()))
       {
         ImGui::End();
         return;
@@ -271,5 +271,61 @@ namespace helpers
       ImGui::EndChild();
       ImGui::End();
     }
-  }
+
+
+    using namespace ImGuiColorTextEdit;
+
+    WindowShader::WindowShader(const std::string& windowTitle)
+      : _title{windowTitle}     
+    {
+      _editor.SetLanguageDefinition(TextEditor::LanguageDefinition::GLSL());
+    }
+
+    
+    bool WindowShader::init(const GLuint hShader)
+    {
+      if (hShader != 0)
+      {
+        _hShader = hShader;
+        GLsizei len;
+        glGetShaderSource(_hShader, MAX_SIZE_SRC, &len, _src);
+        if (glGetError() != GL_NO_ERROR)
+        {
+          return false;
+        }
+        _editor.SetText(_src);
+      }
+      else
+      {
+        _src[0] = '\0';
+      }
+    }
+
+
+
+    bool WindowShader::draw()
+    {
+      bool bUpdated = false;
+
+      if (ImGui::Begin(_title.c_str()))
+      {
+        bUpdated = ImGui::Button("UPDATE");
+        if (bUpdated) {
+          strncpy(_src, _editor.GetText().c_str(), MAX_SIZE_SRC);
+        }
+        _editor.Render(_title.c_str());
+      }
+      ImGui::End();
+
+      return bUpdated;
+    }
+    
+
+    void WindowShader::setSourceCode(const GLuint shader)
+    {
+      glGetShaderSource(shader, MAX_SIZE_SRC, nullptr, _src);
+      _editor.SetText(_src);
+    }
+
+}
 }

@@ -18,13 +18,17 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 
-#========== conan imgui =============#
+#========== imgui =============#
 set(SRC_DIR_IMGUI "external/imgui")
 set(SRC_IMGUIBIND ${SRC_DIR_IMGUI}/imgui_impl_opengl3.cpp ${SRC_DIR_IMGUI}/imgui_impl_sdl2.cpp)
 add_library(imguibind ${SRC_IMGUIBIND})
 
+add_library(ImGuiColorTextEdit external/ImGuiColorTextEdit/TextEditor.h external/ImGuiColorTextEdit/TextEditor.cpp)
+
 
 #========== Targets Configurations ============#
+
+
 # helpers library
 add_library(helpers  src/helpers/TDequeConcurrent.h
                      src/helpers/Renderer.h
@@ -45,7 +49,7 @@ add_executable(${PROJECT_NAME}
 
                          
 # set executable dependecies
-target_link_libraries(${PROJECT_NAME} helpers imguibind)
+target_link_libraries(${PROJECT_NAME} helpers imguibind ImGuiColorTextEdit)
 conan_set_find_library_paths(${PROJECT_NAME})
 conan_target_link_libraries(${PROJECT_NAME})
 

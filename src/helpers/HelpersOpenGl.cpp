@@ -47,14 +47,14 @@ namespace helpers
       glDeleteTextures(1, &_handle);
     }
 
-    bool Texture::init(const std::string& path)
+    bool Texture::init(const std::filesystem::path& path)
     {
       // load image
       stbi_set_flip_vertically_on_load(1);
-      unsigned char* imageData = stbi_load(path.c_str(), &_width, &_height, NULL, 4);
+      unsigned char* imageData = stbi_load(path.string().c_str(), &_width, &_height, NULL, 4);
       if (imageData == nullptr) {
         stbi_image_free(imageData);
-        _lastError = "Cannot load image " + path;
+        _lastError = "Cannot load image " + path.string();
         return false;
       }
 
@@ -73,7 +73,7 @@ namespace helpers
       const int result = glGetError();
       if (result != GL_NO_ERROR)
       {
-        _lastError = "OpenGL error #" + std::to_string(result) + " when loading " + path;
+        _lastError = "OpenGL error #" + std::to_string(result) + " when loading " + path.string();
         return false;
       }
 
@@ -82,7 +82,7 @@ namespace helpers
     }
 
 
-    std::shared_ptr<Texture> FactoryTexture::Create(const std::string& path)
+    std::shared_ptr<Texture> FactoryTexture::Create(const std::filesystem::path& path)
     {
       auto texture = std::make_shared<Texture>();
       if (!texture->init(path))
@@ -93,21 +93,52 @@ namespace helpers
     }
 
 
-    bool Shader::init(const std::string& path, const int type)
+    bool Shader::init(const std::filesystem::path& path, const int type)
     {
       const auto logger = helpers::Logger::GetInstance();
+
+      if (_type != NO_TYPE)
+      {
+        logger->error("Shader is already initialized");
+        return false;
+      }
 
       // read source file
       std::ifstream streamInVertex{ path };
       if (!streamInVertex.good()) {
-        logger->error("Cannot open file " + path);
+        logger->error("Cannot open file " + path.string());
         return false;
       }
       std::string strSrc{ std::istreambuf_iterator<char>{streamInVertex}, {} };
-      const auto src = strSrc.c_str();
 
-      // compile
+      // create resource
       _handle = glCreateShader(type);
+      if (_handle == 0)
+      {
+        logger->error("An error occured while creating a the shader");
+        return false;
+      }   
+
+      // init
+      if (compile(strSrc, type))
+      {
+        _type = type;
+        return true;
+      }
+      else {
+        return false;
+      }
+    }
+     
+
+    bool Shader::compile(const std::string& source, const int type)
+    {
+
+      assert(_handle != 0);
+
+      const auto src = source.c_str();
+      const auto logger = helpers::Logger::GetInstance();
+
       glShaderSource(_handle, 1, &src, NULL);
       glCompileShader(_handle);
 
@@ -122,12 +153,11 @@ namespace helpers
         return false;
       }
 
-      _isInit = true;
-      return _isInit;
+      return true;    
     }
 
 
-    std::shared_ptr<Shader> FactoryShader::Create(const std::string& path, const int type)
+    std::shared_ptr<Shader> FactoryShader::Create(const std::filesystem::path& path, const int type)
     {
       auto shader = std::make_shared<Shader>();
       shader->init(path, type);
@@ -135,5 +165,77 @@ namespace helpers
     }
 
 
-  } // opengl
+
+
+    Program::Program(std::shared_ptr<Shader> pFragShader, std::shared_ptr<Shader> pVertShader, ILogger* pLogger)
+      : _pFragShader{pFragShader}
+      , _pVertShader{pVertShader}
+      , _pLogger{&_loggerDefault}
+    {
+      if (pLogger != nullptr)
+        _pLogger = pLogger;
+    }
+
+
+    Program::~Program()
+    {
+      if (_handle != 0)
+        glDeleteProgram(_handle);
+    }
+
+    bool Program::init()
+    {
+      _handle = glCreateProgram();
+      if(_handle != 0)
+      {
+        glAttachShader(_handle, _pFragShader->handle());
+        glAttachShader(_handle, _pVertShader->handle());
+      }
+      return _handle != 0;
+    }
+
+
+    bool Program::build()
+    {
+      // link shaders into the program
+      glLinkProgram(_handle);
+      // check for linking errors
+      int success;
+      static char Info_Log[512];
+      glGetProgramiv(_handle, GL_LINK_STATUS, &success);
+      if (!success) {
+        glGetProgramInfoLog(_handle, 512, NULL, Info_Log);
+        std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << Info_Log << std::endl;
+      }
+
+      return true;
+    }
+
+    std::shared_ptr<Shader> Program::shader(const int type)
+    {
+      switch (type)
+      {
+      case GL_VERTEX_SHADER:
+        return _pVertShader;
+        break;
+      case GL_FRAGMENT_SHADER:
+        return _pFragShader;
+        break;
+      default:
+        _pLogger->logError("Type must be GL_VERTEX_SHADER or GL_FRAGMENT_SHADER");
+        _pLogger->logInfo("Returning type GL_FRAGMENT_SHADER by default");
+        return _pFragShader; // Or something invalid?
+        break;
+      }
+    }
+
+
+    std::shared_ptr<Program> FactoryProgram::Create(std::shared_ptr<Shader> pFragShader, std::shared_ptr<Shader> pVertShader)
+    {
+      auto pProgram = std::make_shared<Program>(pFragShader, pVertShader);
+      pProgram->init();
+      return pProgram;
+    }
+
+} // opengl
 } // helpers

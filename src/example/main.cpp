@@ -69,7 +69,7 @@ namespace test {
 
   // Required element to draw the OpenGL test shapes
   struct Shape_t {
-    GLuint hProgrammShader = 0;
+    std::shared_ptr<helpers::opengl::Program> pProgramShader;
     GLuint hTexture = 0;
     GLuint hVao = 0;  // a VAO is associated to a VBA stores all the vertex attributes in a single place    
     unsigned nbIndices = 0;
@@ -162,11 +162,13 @@ uint32_t len = sizeof(PATH_EXECUTABLE);
     _quad = test::SetUpQuad();
     std::filesystem::path pathExe{ PATH_EXECUTABLE };
     std::filesystem::path pathTexture = pathExe.parent_path() / "assets" / "texture.png";
-    auto pTexture = helpers::opengl::FactoryTexture::Create(pathTexture.string());
+    auto pTexture = helpers::opengl::FactoryTexture::Create(pathTexture);
     _quadWindow.setAspectRatio(float(pTexture->width()) / float(pTexture->height()));
     _quad.hTexture = pTexture->handle();
     _triangle = test::SetUpTriangle();
 
+    
+    _fragshaderWindow.setSourceCode(_quad.pProgramShader->shader(GL_FRAGMENT_SHADER)->handle());
 
     // # Enter main loop
     _renderer.run();
@@ -190,7 +192,10 @@ private:
   helpers::imgui::WindowRender _triangleWindow{ "Triangle" };
   test::Shape_t _triangle;
 
+  helpers::imgui::WindowShader _fragshaderWindow{ "Van Gogh Fragment Shader" };
+
   helpers::imgui::Logger& _logger;
+
 
   // # Renderer
   helpers::Renderer _renderer;
@@ -203,17 +208,28 @@ private:
     glClearColor(_colorBackground.r, _colorBackground.g, _colorBackground.b, _colorBackground.a);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // ## Scene
+
+    // ## Fragment Shader Window
+    std::shared_ptr<helpers::opengl::Shader> pQuadShader = _quad.pProgramShader->shader(GL_FRAGMENT_SHADER);
+    bool bUpdated = _fragshaderWindow.draw();
+    if (bUpdated)
+    {
+      pQuadShader->compile(_fragshaderWindow.getSourceCode(), GL_FRAGMENT_SHADER);
+      _quad.pProgramShader->build();
+    }
+
+    // ## Scenes
     // ### Sends the opengl commands into the helper windows 
     _quadWindow.begin();
-    glUseProgram(_quad.hProgrammShader);
+    glUseProgram(_quad.pProgramShader->handle());
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, _quad.hTexture);    
     glBindVertexArray(_quad.hVao); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
     glDrawElements(GL_TRIANGLES, _quad.nbIndices, GL_UNSIGNED_INT, 0);
-    _quadWindow.end();   
+    _quadWindow.end();
+
     _triangleWindow.begin();
-    glUseProgram(_triangle.hProgrammShader);
+    glUseProgram(_triangle.pProgramShader->handle());
     glBindVertexArray(_triangle.hVao); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
     glDrawElements(GL_TRIANGLES, _triangle.nbIndices, GL_UNSIGNED_INT, 0);
     _triangleWindow.end();
@@ -222,7 +238,8 @@ private:
     _triangleWindow.draw();
 
     // ## Logger
-    _logger.draw("Logger");
+    _logger.draw();
+
 
     // ## Test imgui window
     test::Imgui_TestWindow();
@@ -278,21 +295,12 @@ namespace test
                      const std::filesystem::path& pathShaderFrag
                     )
   {
-    const auto pShaderVertex = helpers::opengl::FactoryShader::Create(pathShaderVertex.string(), GL_VERTEX_SHADER);
-    const auto pShaderFragment = helpers::opengl::FactoryShader::Create(pathShaderFrag.string(), GL_FRAGMENT_SHADER);
-    // link shaders into the program
-    const auto program_shaders = glCreateProgram();
-    glAttachShader(program_shaders, pShaderVertex->handle());
-    glAttachShader(program_shaders, pShaderFragment->handle());
-    glLinkProgram(program_shaders);
-    // check for linking errors
-    int success;
-    static char Info_Log[512];
-    glGetProgramiv(program_shaders, GL_LINK_STATUS, &success);
-    if (!success) {
-      glGetProgramInfoLog(program_shaders, 512, NULL, Info_Log);
-      std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << Info_Log << std::endl;
-    }
+    // Shader program
+    const auto pShaderVertex = helpers::opengl::FactoryShader::Create(pathShaderVertex, GL_VERTEX_SHADER);
+    const auto pShaderFragment = helpers::opengl::FactoryShader::Create(pathShaderFrag, GL_FRAGMENT_SHADER);
+    const auto pProgram = helpers::opengl::FactoryProgram::Create(pShaderFragment, pShaderVertex);
+    pProgram->build();
+
     unsigned int vbo, vao, ebo;
     glGenVertexArrays(1, &vao);
     glGenBuffers(1, &vbo);
@@ -343,7 +351,7 @@ namespace test
     const std::size_t nb_indices = indices.sizeOfData / sizeof(decltype(indices.data[0]));
 
     return {
-      program_shaders,
+      pProgram,
       0, // texture
       vao,
       static_cast<uint32_t>(nb_indices)
