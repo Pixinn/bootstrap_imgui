@@ -142,7 +142,7 @@ namespace helpers
 
     void Logger::logDebug(const std::string& str)
     {
-      const std::string info = "[debug]    " + str + '\n';
+      const std::string info = "[debug]   " + str + '\n';
       addLog("%s", info.c_str());
     }
 

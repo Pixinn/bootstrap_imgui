@@ -137,7 +137,7 @@ uint32_t len = sizeof(PATH_EXECUTABLE);
         switch (log.level)
         {
         case helpers::Logger::eLevel::DEBUG:
-          _logger.logInfo(log.msg);
+          _logger.logDebug(log.msg);
           break;
         case helpers::Logger::eLevel::INFO:
           _logger.logInfo(log.msg);
