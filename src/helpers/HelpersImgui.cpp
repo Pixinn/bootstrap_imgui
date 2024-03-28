@@ -299,6 +299,7 @@ namespace helpers
       {
         _src[0] = '\0';
       }
+      return true;
     }
 
 
@@ -310,11 +311,22 @@ namespace helpers
       if (ImGui::Begin(_title.c_str()))
       {
         bUpdated = ImGui::Button("UPDATE");
-        if (bUpdated) {
+        ImGui::SameLine();
+        const bool bCopy = ImGui::Button("Copy");
+        if (bUpdated || bCopy) {
           strncpy(_src, _editor.GetText().c_str(), MAX_SIZE_SRC);
+          SDL_SetClipboardText(_src);
         }
+ 
+        char buff[128];
+        std::snprintf(buff, 128, "%llu / %u", std::strlen(_editor.GetText().c_str()), MAX_SIZE_SRC);
+        const std::size_t textWidth = ImGui::CalcTextSize(buff).x;
+        ImGui::SetCursorPosX(ImGui::GetWindowSize().x - std::ceil(ImGui::GetStyle().WindowPadding.x) - textWidth);
+        ImGui::Text(buff);
+
         _editor.Render(_title.c_str());
       }
+
       ImGui::End();
 
       return bUpdated;
