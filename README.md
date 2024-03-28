@@ -1,15 +1,18 @@
 
 # What is it?
 
-This is a *bootstrap* project to get started with **Dear Imgui**, along with **SDL2** and **OpenGL3.3+**.
+This is a cross-platform *bootstrap* project to get started with **Dear Imgui**, along with **SDL2** and **OpenGL3.3+**.  
+It also provides some OpenGl helpers and ImGui Widgets.
 
-As a test, it will draw an orange rectangle and an "Hello World" box in a SDL2 window. This test is borrows from this [OpenGl tutorial](https://learnopengl.com/Getting-started/Hello-Triangle) and the [Dear Imgui example](https://github.com/ocornut/imgui/tree/master/examples/example_sdl_opengl3)
+A demo program using the helpers and the widget is also included.
+
+![Screenshot of the demo running on Windows](demo.png?raw=true "Demo running on Windows")
 
 # Prerequisites
 
 ## conan.io
 
-This project requires *Dear Imgui*, *sdl2* and *glew*. Also all paths required to use *glm* will be set-up.
+This project requires *Dear Imgui*, *sdl2* and *glew*.  
 Those dependencies are handled by [*conan*](https://conan.io/).
 
 Install *conan 1.x*:
@@ -20,6 +23,8 @@ Install *conan 1.x*:
 > conan config set general.revisions_enabled=1
 ```
   
+All paths required to use *glm* will also be set-up.
+
 ## cmake
 
 The build chain is handled by *cmake*.
