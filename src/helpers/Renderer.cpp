@@ -80,6 +80,14 @@ namespace helpers
         {
           quit = true;
         }
+        else if (event.type == SDL_WINDOWEVENT
+              && event.window.event == SDL_WINDOWEVENT_RESIZED
+              && event.window.windowID == SDL_GetWindowID(_pContext->mainWindow))
+        {
+          int h, w;
+          SDL_GetWindowSize(_pContext->mainWindow, &w, &h);
+          glViewport(0, 0, w, h);
+        }
         else {
           _pRunnable->processEvent(event);
         }
@@ -120,7 +128,7 @@ namespace helpers
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, opengl::MINOR_VERSION);
 
     // # SDL Window creation
-    pContext->mainWindow = SDL_CreateWindow("Bootstrap DearImgui SDL2 OpenGL33", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, winWidth, winHeight, SDL_WINDOW_OPENGL);
+    pContext->mainWindow = SDL_CreateWindow("Bootstrap DearImgui SDL2 OpenGL33", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, winWidth, winHeight, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     if (pContext->mainWindow == nullptr)
     {
       std::cerr << "There was an error creating the window: " << SDL_GetError() << std::endl;
