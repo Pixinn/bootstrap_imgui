@@ -27,6 +27,8 @@
 #include <memory>
 #include <unordered_map>
 #include <filesystem>
+#include <vector>
+#include <string>
 
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
@@ -43,13 +45,19 @@ namespace helpers
     static constexpr auto PROFILE = SDL_GLprofile::SDL_GL_CONTEXT_PROFILE_CORE;  // OpenGL core profile - deprecated functions are disabled
     static constexpr auto GLSL_VERSION = "#version 330 core";
 
+    /// @brief Returns a list of OpenGl errors that occurred since last call
+    std::vector<std::string> GetErrors();
+
     class ILogger
     {
+
     public:
+
       virtual void logDebug(const std::string& str) = 0;
       virtual void logInfo(const std::string& str) = 0;
       virtual void logWarning(const std::string& str) = 0;
       virtual void logError(const std::string& str) = 0;
+
     };
 
     class LoggerDefault : public ILogger
@@ -88,7 +96,7 @@ namespace helpers
       /// @return false if an error occured
       bool init(const std::filesystem::path& path);
 
-      const std::string& error() const { return _lastError; }
+      const std::vector<std::string>& errors() const { return _errors; }
 
       inline int width() const { return _width;  }
       inline int height() const { return _height; }
@@ -101,7 +109,7 @@ namespace helpers
       int _height = 0;
       GLuint   _handle = 0u;
       bool   _isInit = false;
-      std::string _lastError;
+      std::vector<std::string> _errors;
     };
 
 

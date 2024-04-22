@@ -42,6 +42,40 @@ namespace helpers
   namespace opengl
   {
 
+    std::vector<std::string> GetErrors()
+    {
+      std::vector<std::string> errors;
+      GLenum err;
+      while ((err = glGetError()) != GL_NO_ERROR) {
+        std::string errorString;
+        switch (err) {
+        case GL_INVALID_ENUM:
+          errorString = "GL_INVALID_ENUM";
+          break;
+        case GL_INVALID_VALUE:
+          errorString = "GL_INVALID_VALUE";
+          break;
+        case GL_INVALID_OPERATION:
+          errorString = "GL_INVALID_OPERATION";
+          break;
+        case GL_INVALID_FRAMEBUFFER_OPERATION:
+          errorString = "GL_INVALID_FRAMEBUFFER_OPERATION";
+          break;
+        case GL_OUT_OF_MEMORY:
+          errorString = "GL_OUT_OF_MEMORY";
+          break;
+        default:
+          errorString = "Unknown Error";
+          break;
+
+        }
+        errors.push_back(errorString);
+
+      }
+      return errors;
+    }
+    
+
     Texture::~Texture()
     {
       glDeleteTextures(1, &_handle);
@@ -54,7 +88,7 @@ namespace helpers
       unsigned char* imageData = stbi_load(path.string().c_str(), &_width, &_height, NULL, 4);
       if (imageData == nullptr) {
         stbi_image_free(imageData);
-        _lastError = "Cannot load image " + path.string();
+        _errors.push_back("Cannot load image " + path.string());
         return false;
       }
 
@@ -71,9 +105,8 @@ namespace helpers
       stbi_image_free(imageData);
 
       const int result = glGetError();
-      if (result != GL_NO_ERROR)
-      {
-        _lastError = "OpenGL error #" + std::to_string(result) + " when loading " + path.string();
+      _errors = GetErrors();
+      if (!_errors.empty()) {
         return false;
       }
 
@@ -87,7 +120,15 @@ namespace helpers
       auto texture = std::make_shared<Texture>();
       if (!texture->init(path))
       {
-        helpers::Logger::GetInstance()->error("Cannot create texture: " + texture->error());
+        const auto& errors = texture->errors();
+        if (!errors.empty())
+        {
+          std::string errMsg = "Cannot create texture " + path.string() + ':';
+          for (const auto& error : texture->errors()) {
+            errMsg += "\n\t" + error;
+          }
+          Logger::GetInstance()->error(errMsg);
+        }
       }
       return texture;
     }
