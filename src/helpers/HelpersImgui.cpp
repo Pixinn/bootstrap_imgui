@@ -28,6 +28,8 @@
 #include <imgui/imgui_impl_opengl3.h>
 #include <imgui/imgui_impl_sdl2.h>
 
+#include <fstream>
+
 #include "HelpersImgui.h"
 
 
@@ -276,12 +278,14 @@ namespace helpers
     using namespace ImGuiColorTextEdit;
 
     WindowShader::WindowShader(const std::string& windowTitle)
-      : _title{windowTitle}     
+      : _title{ windowTitle }
+      , _src{ "" }
+      , _path{ "" }
     {
       _editor.SetLanguageDefinition(TextEditor::LanguageDefinition::GLSL());
     }
 
-    
+
     bool WindowShader::init(const GLuint hShader)
     {
       if (hShader != 0)
@@ -317,12 +321,17 @@ namespace helpers
           strncpy(_src, _editor.GetText().c_str(), MAX_SIZE_SRC);
           SDL_SetClipboardText(_src);
         }
- 
+        ImGui::InputText("", _path, IM_ARRAYSIZE(_src));
+        ImGui::SameLine();
+        if (ImGui::Button("SAVE")) {
+          saveSourceCode();
+        }
+
         char buff[128];
-        std::snprintf(buff, 128, "%llu / %u", std::strlen(_editor.GetText().c_str()), MAX_SIZE_SRC);
+        std::snprintf(buff, 128, "%llu / %u", static_cast<unsigned long long>(std::strlen(_editor.GetText().c_str())), MAX_SIZE_SRC);
         const std::size_t textWidth = ImGui::CalcTextSize(buff).x;
         ImGui::SetCursorPosX(ImGui::GetWindowSize().x - std::ceil(ImGui::GetStyle().WindowPadding.x) - textWidth);
-        ImGui::Text(buff);
+        ImGui::Text("%s", buff);
 
         _editor.Render(_title.c_str());
       }
@@ -331,12 +340,51 @@ namespace helpers
 
       return bUpdated;
     }
-    
+
 
     void WindowShader::setSourceCode(const GLuint shader)
     {
       glGetShaderSource(shader, MAX_SIZE_SRC, nullptr, _src);
       _editor.SetText(_src);
+    }
+
+
+    void WindowShader::saveSourceCode()
+    {
+      const std::filesystem::path path{ _path };
+      strncpy(_src, _editor.GetText().c_str(), MAX_SIZE_SRC);
+
+      std::ofstream stream;
+      stream.open( path.string().c_str(), std::ios::out );
+      if (!stream.fail())    {
+        stream.write(_src, MAX_SIZE_SRC);
+        Logger::GetInstance().logInfo(path.string() + " written");
+      }
+      else   {
+        Logger::GetInstance().logError("Cannot open file " + path.string());      
+      }
+
+    }
+
+
+    void WindowShader::setPath(const std::filesystem::path& path)
+    {
+      strncpy(_path, path.string().c_str(), MAX_SIZE_PATH);
+      if (!std::filesystem::is_regular_file(path)) {
+        Logger::GetInstance().logInfo(path.string() + " is not a file");
+      }
+      else
+      {
+        std::ifstream stream{ path.string().c_str(), std::ios::in };
+        if (!stream.fail()) {
+          stream.read(_src, MAX_SIZE_SRC);
+          _editor.SetText(_src);
+        }
+        else {
+          Logger::GetInstance().logError("Cannot open file " + path.string());
+        }
+
+      }
     }
 
 }

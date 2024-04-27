@@ -29,6 +29,8 @@
 #include <SDL2/SDL_opengl.h>
 #include <SDL2/SDL_opengl_glext.h>
 
+#include <filesystem>
+
 #include <imgui.h>
 #include <ImGuiColorTextEdit/TextEditor.h>
 
@@ -101,17 +103,22 @@ namespace helpers
 
       void setSourceCode(const GLuint shader);
 
+      void saveSourceCode();
+
+      void setPath(const std::filesystem::path& path);
+
     private:
       ImGuiColorTextEdit::TextEditor _editor;
 
       static constexpr int MAX_SIZE_SRC = 10 * 1024;
+      static constexpr int MAX_SIZE_PATH = 512;
 
       const std::string _title;
       char _src[MAX_SIZE_SRC];
+      char _path[MAX_SIZE_PATH];
       GLuint _hShader = 0;
 
     };
-    
     class Logger
     {
 
