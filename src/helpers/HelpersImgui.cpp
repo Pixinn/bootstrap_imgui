@@ -321,7 +321,7 @@ namespace helpers
           strncpy(_src, _editor.GetText().c_str(), MAX_SIZE_SRC);
           SDL_SetClipboardText(_src);
         }
-        ImGui::InputText("", _path, IM_ARRAYSIZE(_src));
+        ImGui::InputText(" ", _path, IM_ARRAYSIZE(_path));
         ImGui::SameLine();
         if (ImGui::Button("SAVE")) {
           saveSourceCode();

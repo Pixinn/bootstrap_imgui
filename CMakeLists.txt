@@ -1,11 +1,14 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.23)
 
 # Project name - should not contain whitespace 
 project(bootstrap_imgui)
 
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup()
 
+#========== conan depedencies =============
+find_package(SDL2 REQUIRED)
+find_package(glew REQUIRED)
+find_package(glm  REQUIRED)
+find_package(imgui REQUIRED)
 
 
 #========== non-conan dependencies =============#
@@ -21,9 +24,16 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 #========== imgui =============#
 set(SRC_DIR_IMGUI "external/imgui")
 set(SRC_IMGUIBIND ${SRC_DIR_IMGUI}/imgui_impl_opengl3.cpp ${SRC_DIR_IMGUI}/imgui_impl_sdl2.cpp)
-add_library(imguibind ${SRC_IMGUIBIND})
+add_library(imgui-bind ${SRC_IMGUIBIND})
+#target_include_directories(imgui-bind PRIVATE ${imgui_INCLUDE_DIRS} ${SDL2_INCLUDE_DIRS})
+target_link_libraries(imgui-bind PUBLIC SDL2::SDL2main imgui::imgui)
 
-add_library(ImGuiColorTextEdit external/ImGuiColorTextEdit/TextEditor.h external/ImGuiColorTextEdit/TextEditor.cpp)
+set(SRC_DIR_IMGUICOLORTEXTEDIT "external/ImGuiColorTextEdit")
+set(SRC_IMGUICOLORTEXTEDIT ${SRC_DIR_IMGUICOLORTEXTEDIT}/TextEditor.h ${SRC_DIR_IMGUICOLORTEXTEDIT}/TextEditor.cpp)
+add_library(imgui-colortextedit ${SRC_IMGUICOLORTEXTEDIT})
+# target_include_directories(imgui-colortextedit PRIVATE ${imgui_INCLUDE_DIRS})
+target_link_libraries(imgui-colortextedit PUBLIC imgui-bind)
+
 
 
 #========== Targets Configurations ============#
@@ -40,7 +50,10 @@ add_library(helpers  src/helpers/TDequeConcurrent.h
                      src/helpers/HelpersImgui.h
                      src/helpers/HelpersImgui.cpp
 )
-target_include_directories(helpers PUBLIC src external)
+target_include_directories(helpers 
+	PUBLIC   src external
+)
+target_link_libraries(helpers PUBLIC imgui-bind imgui-colortextedit SDL2::SDL2main GLEW::GLEW glm::glm imgui::imgui)
 
 # project sources
 add_executable(${PROJECT_NAME}
@@ -49,9 +62,7 @@ add_executable(${PROJECT_NAME}
 
                          
 # set executable dependecies
-target_link_libraries(${PROJECT_NAME} helpers imguibind ImGuiColorTextEdit)
-conan_set_find_library_paths(${PROJECT_NAME})
-conan_target_link_libraries(${PROJECT_NAME})
+target_link_libraries(${PROJECT_NAME} helpers imgui-bind imgui-colortextedit)
 
 # compilation definitions
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")

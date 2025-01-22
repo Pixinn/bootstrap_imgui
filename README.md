@@ -15,12 +15,11 @@ A demo program using the helpers and the widget is also included.
 This project requires *Dear Imgui*, *sdl2* and *glew*.  
 Those dependencies are handled by [*conan*](https://conan.io/).
 
-Install *conan 1.x*:
+Install and configure *conan*:
 
 ```bash
-> pip install 'conan<2.0'  
-> conan remote add bincrafters https://bincrafters.jfrog.io/artifactory/api/conan/public-conan
-> conan config set general.revisions_enabled=1
+> pip install 'conan'
+> conan profile detect 
 ```
   
 All paths required to use *glm* will also be set-up.
@@ -31,11 +30,22 @@ The build chain is handled by *cmake*.
 
 # How to build
 
+From the project root dir:
+
 ```bash
-> mkdir build && cd build
-> conan install .. --build=missing
-> cmake .. -DCMAKE_BUILD_TYPE=Release
-> cmake --build . --config Release
+> conan install . -s build_type=Debug --build=missing
+> conan install . -s build_type=Release --build=missing
+> cmake --preset conan-default
 ```
+
+The project and all have been generated in the *build* directory
+
+```bash
+> cd build
+> cmake --build . --config=release -j
+> cmake --build . --config=debug -j
+```
+
+The executable are in the *build/Release* and *build/Debug* directories along with all the required resource files.
   
 **Please note** that you must be consistent between your conan 32/64 bit configuration and the build. Otherwise you'll get link errors. If you build using *Visual Studio* you may have to use the **Win64** generator.
